@@ -76,30 +76,62 @@ def taboo_cells(warehouse):
     '''
     
     warehouse_str = str(warehouse).split('\n')
-    x_sz = len(warehouse_str[0])
-    
-    for y in range(len(warehouse_str)):
-        # strip trailing space and replace with 'u'
-        warehouse_str[y] = warehouse_str[y].lstrip()
-        warehouse_str[y] = ('u' * (x_sz - len(warehouse_str[y]))) + warehouse_str[y]
+    x_sz = max(len(row) for row in warehouse_str)
 
-        warehouse_str[y] = warehouse_str[y].rstrip()
-        warehouse_str[y] = warehouse_str[y] + ('u' * (x_sz - len(warehouse_str[y])))
+    def replaceTrailingSpace(string, sz, replacement):
+        # strip trailing space and replace with char
+        string = string.lstrip()
+        string = (replacement * (sz - len(string))) + string
+
+        string = string.rstrip()
+        string = string + (replacement * (sz - len(string)))
+
+        return string
+
+    for y in range(len(warehouse_str)):
+        # pad right until reach x_sz
+        if (len(warehouse_str[y]) < x_sz):
+            warehouse_str[y] = warehouse_str[y] + ' ' * (x_sz - len(warehouse_str[y]))
+
+        warehouse_str[y] = replaceTrailingSpace(warehouse_str[y], x_sz, 'u')
 
         # replace with space
         warehouse_str[y] = warehouse_str[y].replace('*', '.').replace('@', ' ').replace('$', ' ')
-    
+
+    # remove trailing vertical spaces
+    for y in range(len(warehouse_str)):
+        warehouse_str[y] = list(warehouse_str[y])
+    warehouse_str = [[warehouse_str[j][i] for j in range(len(warehouse_str))] for i in range(len(warehouse_str[0])-1,-1,-1)] # rotate 90
+
+    for x in range(len(warehouse_str)):
+        y_sz = len(warehouse_str[x])
+        warehouse_str[x] = ''.join(char for char in warehouse_str[x])
+        warehouse_str[x] = replaceTrailingSpace(warehouse_str[x], y_sz, 'u')
+
+    # rotate -90
+    for y in range(len(warehouse_str)):
+        warehouse_str[y] = list(warehouse_str[y])
+    warehouse_str = [[warehouse_str[j][i] for j in range(len(warehouse_str)-1,-1,-1)] for i in range(len(warehouse_str[0]))]
+
+    for x in range(len(warehouse_str)):
+        y_sz = len(warehouse_str[x])
+        warehouse_str[x] = ''.join(char for char in warehouse_str[x])
+
     tabooCorners = []
     # Rule 1: find corners
     for y in range(len(warehouse_str)):
         for x in range(len(warehouse_str[y])):
             if (warehouse_str[y][x] == ' '):
                 # corner if up down left right are walls >1 times
-                updownleftright = warehouse_str[y][x+1] + warehouse_str[y][x-1] + warehouse_str[y+1][x] + warehouse_str[y-1][x]
+                up = warehouse_str[y+1][x]
+                down = warehouse_str[y-1][x]
+                left = warehouse_str[y][x-1]
+                right = warehouse_str[y][x+1]
+                pattern = up + right + down + left + up
                 # count walls
-                count = updownleftright.count('#')
+                corner = pattern.find("##") # two walls in pattern (corner)
 
-                if (count > 1):
+                if (corner >= 0):
                     warehouse_str[y] = warehouse_str[y][:x] + 'X' + warehouse_str[y][x+1:]
                     # track X's
                     tabooCorners.append([x, y])
@@ -108,30 +140,51 @@ def taboo_cells(warehouse):
     for i in range(len(tabooCorners)):
         corner = tabooCorners[i]
 
+        # check for any goal in the line
         for j in range(i+1, len(tabooCorners)):
             cornerCheck = tabooCorners[j]
 
             if (corner[0] == cornerCheck[0]):
                 # y-axis
+                axis_available = True
                 x = corner[0]
                 yrange = [corner[1], cornerCheck[1]]
                 for y in range(min(yrange), max(yrange)):
-                    if (warehouse_str[y][x] != '.'): # not goal
-                        updown = warehouse_str[y][x+1] + warehouse_str[y][x-1]
-                        if (updown.count('#') >= 1):
-                            warehouse_str[y] = warehouse_str[y][:x] + 'X' + warehouse_str[y][x+1:]
+                    if (warehouse_str[y][x] == '.'): # goal in axis
+                        axis_available = False
+                        break
+                    leftright = warehouse_str[y][x+1] + warehouse_str[y][x-1]
+                    if (leftright.count('#') == 0):
+                        axis_available = False
+                        break # no walls, break
+
+                
+                if (axis_available):
+                    # vertically
+                    for y_ in range(min(yrange), max(yrange)):
+                        warehouse_str[y_] = warehouse_str[y_][:x] + 'X' + warehouse_str[y_][x+1:]
 
             if (corner[1] == cornerCheck[1]):
                 # x-axis
+                axis_available = True
                 y = corner[1]
                 xrange = [corner[0], cornerCheck[0]]
                 for x in range(min(xrange), max(xrange)):
-                    if (warehouse_str[y][x] != '.'): # not goal
-                        updown = warehouse_str[y+1][x] + warehouse_str[y-1][x]
-                        if (updown.count('#') >= 1):
-                            warehouse_str[y] = warehouse_str[y][:x] + 'X' + warehouse_str[y][x+1:]
+                    if (warehouse_str[y][x] == '.'): # goal in axis
+                        axis_available = False
+                        break
+                    updown = warehouse_str[y+1][x] + warehouse_str[y-1][x]
+                    if (updown.count('#') == 0):
+                        axis_available = False
+                        break # no walls, break
 
-    
+                
+                if (axis_available):
+                    length = abs(corner[0] - cornerCheck[0])
+                    # horizontally
+                    for x_ in range(min(xrange), max(xrange)):
+                        warehouse_str[y] = warehouse_str[y][:x_] + 'X' + warehouse_str[y][x_+1:]
+
     # replace unplayable areas 'u' with space again
     out_str = ''
     for y in range(len(warehouse_str)):
