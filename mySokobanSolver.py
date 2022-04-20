@@ -87,9 +87,10 @@ def taboo_cells(warehouse):
         warehouse_str[y] = warehouse_str[y] + ('u' * (x_sz - len(warehouse_str[y])))
 
         # replace with space
-        warehouse_str[y] = warehouse_str[y].replace('*', ' ').replace('@', ' ').replace('$', ' ')
+        warehouse_str[y] = warehouse_str[y].replace('*', '.').replace('@', ' ').replace('$', ' ')
     
-    # find corners
+    tabooCorners = []
+    # Rule 1: find corners
     for y in range(len(warehouse_str)):
         for x in range(len(warehouse_str[y])):
             if (warehouse_str[y][x] == ' '):
@@ -100,6 +101,36 @@ def taboo_cells(warehouse):
 
                 if (count > 1):
                     warehouse_str[y] = warehouse_str[y][:x] + 'X' + warehouse_str[y][x+1:]
+                    # track X's
+                    tabooCorners.append([x, y])
+
+    # Rule 2: corridor
+    for i in range(len(tabooCorners)):
+        corner = tabooCorners[i]
+
+        for j in range(i+1, len(tabooCorners)):
+            cornerCheck = tabooCorners[j]
+
+            if (corner[0] == cornerCheck[0]):
+                # y-axis
+                x = corner[0]
+                yrange = [corner[1], cornerCheck[1]]
+                for y in range(min(yrange), max(yrange)):
+                    if (warehouse_str[y][x] != '.'): # not goal
+                        updown = warehouse_str[y][x+1] + warehouse_str[y][x-1]
+                        if (updown.count('#') >= 1):
+                            warehouse_str[y] = warehouse_str[y][:x] + 'X' + warehouse_str[y][x+1:]
+
+            if (corner[1] == cornerCheck[1]):
+                # x-axis
+                y = corner[1]
+                xrange = [corner[0], cornerCheck[0]]
+                for x in range(min(xrange), max(xrange)):
+                    if (warehouse_str[y][x] != '.'): # not goal
+                        updown = warehouse_str[y+1][x] + warehouse_str[y-1][x]
+                        if (updown.count('#') >= 1):
+                            warehouse_str[y] = warehouse_str[y][:x] + 'X' + warehouse_str[y][x+1:]
+
     
     # replace unplayable areas 'u' with space again
     out_str = ''
@@ -205,6 +236,9 @@ def solve_weighted_sokoban(warehouse):
     print("weights: ", warehouse.weights)
     print("walls: ", warehouse.walls)
     print("worker: ", warehouse.worker)
+    
+    print("original map: ")
+    print(str(warehouse))
 
     print("taboo map: ")
     print(taboo_cells(warehouse))
