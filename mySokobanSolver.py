@@ -217,17 +217,50 @@ class SokobanPuzzle(search.Problem):
     #     to satisfy the interface of 'search.Problem'.
     #
     #     You are allowed (and encouraged) to use auxiliary functions and classes
-
     
     def __init__(self, warehouse):
-        raise NotImplementedError()
+        self.walls = warehouse.walls
+        self.targets = warehouse.targets
+        # current state =>
+        self.boxes = [[boxes, warehouse.weights[i]] for i, boxes in enumerate(warehouse.boxes)] # combine box + weight?
+        self.worker = warehouse.worker 
 
     def actions(self, state):
         """
         Return the list of actions that can be executed in the given state.
         
         """
+
+        """
+        Student note:
+        State: location of the worker + boxes -> used to get actions
+        Simply: move worker up down left right, unless theres a wall there, or box against wall, box against box
+        """
+
+        legal_actions = []
+        # if (state.walls.coord(state.worker.coord.Up) or
+        #     (state.boxes.coord(state.worker.coord.Up) and state.walls.coord(state.worker.coord.Up.Up)) or
+        #     (state.boxes.coord(state.worker.coord.Up) and state.boxes.coord(state.worker.coord.Up.Up))):
+        #     legal_actions = 'Up'
+        # etc.
+
         raise NotImplementedError
+    
+    def result(self, state, action):
+        """
+        Return the state that results from executing the given
+        action in the given state. The action must be one of
+        self.actions(state).
+        """
+
+        raise NotImplementedError
+
+    # state class?
+    # class state():
+    #     def __init__(self, boxes, worker):
+    #         self.boxes = boxes
+    #         self.worker = worker
+
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -296,8 +329,8 @@ def solve_weighted_sokoban(warehouse):
     print("taboo map: ")
     print(taboo_cells(warehouse))
 
+    # raise NotImplementedError
     return ['Down', 'Left', 'Up', 'Right', 'Right', 'Right', 'Down', 'Left', 'Up', 'Left', 'Left', 'Down', 'Down', 'Right', 'Up', 'Left', 'Up', 'Right', 'Up', 'Up', 'Left', 'Down', 'Right', 'Down', 'Down', 'Right', 'Right', 'Up', 'Left', 'Down', 'Left', 'Up'], 0
-
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
