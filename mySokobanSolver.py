@@ -191,7 +191,7 @@ def taboo_cells(warehouse):
         out_str += warehouse_str[y].replace('u', ' ').replace('.', ' ')
         out_str += '\n'
 
-    return out_str
+    return out_str[0:len(out_str)-1]
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
