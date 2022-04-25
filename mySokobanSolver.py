@@ -224,7 +224,7 @@ class SokobanPuzzle(search.Problem):
         # current state =>
         self.boxes = [[boxes, warehouse.weights[i]] for i, boxes in enumerate(warehouse.boxes)] # combine box + weight?
         self.worker = warehouse.worker 
-
+    
     def actions(self, state):
         """
         Return the list of actions that can be executed in the given state.
@@ -234,15 +234,35 @@ class SokobanPuzzle(search.Problem):
         """
         Student note:
         State: location of the worker + boxes -> used to get actions
-        Simply: move worker up down left right, unless theres a wall there, or box against wall, box against box
+        Actions of worker: move worker up down left right, unless theres a wall there, or box against wall, box against box
         """
 
         legal_actions = []
-        # if (state.walls.coord(state.worker.coord.Up) or
-        #     (state.boxes.coord(state.worker.coord.Up) and state.walls.coord(state.worker.coord.Up.Up)) or
-        #     (state.boxes.coord(state.worker.coord.Up) and state.boxes.coord(state.worker.coord.Up.Up))):
-        #     legal_actions = 'Up'
-        # etc.
+        """ BOX LEGAL ACTIONS
+        for each box:
+            if (box can move up):
+                legal_actions.append((box[i], 'Up'))
+
+        def box.can move:
+            final_pos = box.Up.coord
+            etc.
+            if (final_pos == taboo_cell):
+                return false
+            if (final_pos == wall):
+                return false
+            if (final_pos == another_box):
+                return false
+
+            return true
+        """
+
+        """ OR WORKER LEGAL ACTIONS
+        if (state.walls.coord(state.worker.coord.Up) or
+            (state.boxes.coord(state.worker.coord.Up) and state.walls.coord(state.worker.coord.Up.Up)) or
+            (state.boxes.coord(state.worker.coord.Up) and state.boxes.coord(state.worker.coord.Up.Up))):
+            legal_actions = 'Up'
+        etc.
+        """
 
         raise NotImplementedError
     
@@ -261,6 +281,28 @@ class SokobanPuzzle(search.Problem):
     #         self.boxes = boxes
     #         self.worker = worker
 
+    def goal_test(self, state):
+        """Return True if the state is a goal. The default method compares the
+        state to self.goal, as specified in the constructor. Override this
+        method if checking against a single self.goal is not enough."""
+        return state == self.goal
+
+    def path_cost(self, c, state1, action, state2):
+        """Return the cost of a solution path that arrives at state2 from
+        state1 via action, assuming cost c to get up to state1. If the problem
+        is such that the path doesn't matter, this function will only look at
+        state2.  If the path does matter, it will consider c and maybe state1
+        and action. The default method costs 1 for every step in the path."""
+        return c + 1
+        
+    def h(self, node):
+        """Heuristic"""
+        return NotImplementedError
+
+    def value(self, state):
+        """For optimization problems, each state has a value.  Hill-climbing
+        and related algorithms try to maximize this value."""
+        raise NotImplementedError
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -290,6 +332,8 @@ def check_elem_action_seq(warehouse, action_seq):
     
     ##         "INSERT YOUR CODE HERE"
     
+    # How does this relate to the rest of the code - where would it be used?
+
     raise NotImplementedError()
 
 
