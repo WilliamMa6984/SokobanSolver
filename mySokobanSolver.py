@@ -118,6 +118,7 @@ def taboo_cells(warehouse):
         y_sz = len(warehouse_str[x])
         warehouse_str[x] = ''.join(char for char in warehouse_str[x])
 
+    warehouse_str = mark_unplayable(warehouse_str, warehouse)
     print("unplayables:")
     for str_ in warehouse_str:
         print(str_)
@@ -388,55 +389,26 @@ def solve_weighted_sokoban(warehouse):
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-# def markPlayable(warehouse):
-#     wh = sokoban.Warehouse()
-#     wh.from_string("###\n# #\n#")
-#     cells = playable_cells(WorkerPathing(warehouse=warehouse, goal=None, boxes=wh.boxes), search.LIFOQueue())
+def mark_unplayable(warehouse_str, warehouse):
+    for y, string in enumerate(warehouse_str):
+        x_arr = [i for i, letter in enumerate(list(string)) if letter == ' ']
+        
+        for x in x_arr:
+            if path_to_location(warehouse, (x, y), ignoreBox=True) == None:
+                warehouse_str[y] = warehouse_str[y][:x] + 'u' + warehouse_str[y][x+1:]
     
-#     print(str(wh))
-#     warehouse_str = str(wh).split('\n')
+    return warehouse_str
 
-#     for i in range(len(warehouse_str)):
-#         warehouse_str[i] = list(warehouse_str[i])
-
-#     for cell in cells:
-#         warehouse_str[cell[0]][cell[1]] = 'p'
-
-#     out = ''
-#     for char_arr in warehouse_str:
-#         out += ''.join(char_arr)
-#         out += '\n'
-
-#     return out[0:len(out)-1]
-
-def playable_cells(problem, frontier):
-    """
-    """
-    assert isinstance(problem, search.Problem)
-    frontier.append(search.Node(problem.initial))
-    explored = set() # initial empty set of explored states
-    out_cells = set()
-    while frontier:
-        node = frontier.pop()
-        explored.add(node.state)
-        
-        hitWall = False
-        for wall in problem.walls:
-            if (node.state == wall):
-                hitWall = True
-                break
-        if (hitWall == False):
-            out_cells.add(node.state)
-        
-        # Python note: next line uses of a generator
-        frontier.extend(child for child in node.expand(problem)
-                        if child.state not in explored
-                        and child not in frontier)
-    return out_cells
-
-def path_to_location(warehouse, goal):
-    out = search.astar_graph_search(WorkerPathing(warehouse=warehouse, goal=goal, boxes=warehouse.boxes), search.LIFOQueue())
-    return out.solution()
+def path_to_location(warehouse, goal, ignoreBox):
+    if (ignoreBox == True):
+        boxes = None
+    else:
+        boxes = warehouse.boxes
+    out = search.astar_graph_search(WorkerPathing(warehouse=warehouse, goal=goal, boxes=boxes))
+    if out == None:
+        return None
+    else:
+        return out.solution()
 
 class WorkerPathing(search.Problem):
     '''
@@ -459,10 +431,6 @@ class WorkerPathing(search.Problem):
         """
 
         legal_actions = []
-        # if (state.walls.coord(state.worker.coord.Up) or
-        #     (state.boxes.coord(state.worker.coord.Up) and state.walls.coord(state.worker.coord.Up.Up)) or
-        #     (state.boxes.coord(state.worker.coord.Up) and state.boxes.coord(state.worker.coord.Up.Up))):
-        #     legal_actions = 'Up'
         
         workerUpDownLeftRight = []
         workerUpDownLeftRight.append(tuple((state[0], state[1] - 1)))
