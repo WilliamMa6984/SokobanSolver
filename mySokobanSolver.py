@@ -80,14 +80,15 @@ def taboo_cells(warehouse):
 
     def replaceTrailingSpace(string, sz, replacement):
         # strip trailing space and replace with char
-        string = string.lstrip()
+        string = string.lstrip(' ' + replacement)
         string = (replacement * (sz - len(string))) + string
 
-        string = string.rstrip()
+        string = string.rstrip(' ' + replacement)
         string = string + (replacement * (sz - len(string)))
 
         return string
 
+    # remove trailing horizontal spaces
     for y in range(len(warehouse_str)):
         # pad right until reach x_sz
         if (len(warehouse_str[y]) < x_sz):
@@ -96,7 +97,7 @@ def taboo_cells(warehouse):
         warehouse_str[y] = replaceTrailingSpace(warehouse_str[y], x_sz, 'u')
 
         # replace with space
-        warehouse_str[y] = warehouse_str[y].replace('*', '.').replace('@', ' ').replace('$', ' ')
+        warehouse_str[y] = warehouse_str[y].replace('*', '.').replace('!', '.').replace('@', ' ').replace('$', ' ')
 
     # remove trailing vertical spaces
     for y in range(len(warehouse_str)):
@@ -116,6 +117,11 @@ def taboo_cells(warehouse):
     for x in range(len(warehouse_str)):
         y_sz = len(warehouse_str[x])
         warehouse_str[x] = ''.join(char for char in warehouse_str[x])
+
+    print("unplayables:")
+    for str_ in warehouse_str:
+        print(str_)
+    print("done")
 
     tabooCorners = []
     # Rule 1: find corners
@@ -150,7 +156,7 @@ def taboo_cells(warehouse):
                 x = corner[0]
                 yrange = [corner[1], cornerCheck[1]]
                 for y in range(min(yrange), max(yrange)):
-                    if (warehouse_str[y][x] == '.'): # goal in axis
+                    if (warehouse_str[y][x] == '.' or warehouse_str[y][x] == '#'): # goal or wall in axis
                         axis_available = False
                         break
                     leftright = warehouse_str[y][x+1] + warehouse_str[y][x-1]
@@ -170,7 +176,7 @@ def taboo_cells(warehouse):
                 y = corner[1]
                 xrange = [corner[0], cornerCheck[0]]
                 for x in range(min(xrange), max(xrange)):
-                    if (warehouse_str[y][x] == '.'): # goal in axis
+                    if (warehouse_str[y][x] == '.' or warehouse_str[y][x] == '#'): # goal in axis
                         axis_available = False
                         break
                     updown = warehouse_str[y+1][x] + warehouse_str[y-1][x]
@@ -180,7 +186,6 @@ def taboo_cells(warehouse):
 
                 
                 if (axis_available):
-                    length = abs(corner[0] - cornerCheck[0])
                     # horizontally
                     for x_ in range(min(xrange), max(xrange)):
                         warehouse_str[y] = warehouse_str[y][:x_] + 'X' + warehouse_str[y][x_+1:]
@@ -220,10 +225,11 @@ class SokobanPuzzle(search.Problem):
     
     def __init__(self, warehouse):
         self.walls = warehouse.walls
-        self.targets = warehouse.targets
-        # current state =>
-        self.boxes = [[boxes, warehouse.weights[i]] for i, boxes in enumerate(warehouse.boxes)] # combine box + weight?
-        self.worker = warehouse.worker 
+        self.goals = warehouse.targets
+        # state: combine box + weight
+        # self.state = [[boxes, warehouse.weights[i]] for i, boxes in enumerate(warehouse.boxes)]
+        # self.worker = warehouse.worker 
+        self.state = {'boxes': warehouse.boxes, 'weights': warehouse.weights, 'worker': warehouse.worker}
     
     def actions(self, state):
         """
@@ -236,7 +242,7 @@ class SokobanPuzzle(search.Problem):
         State: location of the worker + boxes -> used to get actions
         Actions of worker: move worker up down left right, unless theres a wall there, or box against wall, box against box
         """
-
+        
         legal_actions = []
         """ BOX LEGAL ACTIONS
         for each box:
@@ -372,6 +378,7 @@ def solve_weighted_sokoban(warehouse):
 
     print("taboo map: ")
     print(taboo_cells(warehouse))
+    print("stop")
 
     # raise NotImplementedError
     return ['Down', 'Left', 'Up', 'Right', 'Right', 'Right', 'Down', 'Left', 'Up', 'Left', 'Left', 'Down', 'Down', 'Right', 'Up', 'Left', 'Up', 'Right', 'Up', 'Up', 'Left', 'Down', 'Right', 'Down', 'Down', 'Right', 'Right', 'Up', 'Left', 'Down', 'Left', 'Up'], 0
