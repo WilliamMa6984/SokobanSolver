@@ -380,8 +380,146 @@ def solve_weighted_sokoban(warehouse):
     print(taboo_cells(warehouse))
     print("stop")
 
+    # print("mark playable:")
+    # print(markPlayable(warehouse))
+
     # raise NotImplementedError
     return ['Down', 'Left', 'Up', 'Right', 'Right', 'Right', 'Down', 'Left', 'Up', 'Left', 'Left', 'Down', 'Down', 'Right', 'Up', 'Left', 'Up', 'Right', 'Up', 'Up', 'Left', 'Down', 'Right', 'Down', 'Down', 'Right', 'Right', 'Up', 'Left', 'Down', 'Left', 'Up'], 0
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
+# def markPlayable(warehouse):
+#     wh = sokoban.Warehouse()
+#     wh.from_string("###\n# #\n#")
+#     cells = playable_cells(WorkerPathing(warehouse=warehouse, goal=None, boxes=wh.boxes), search.LIFOQueue())
+    
+#     print(str(wh))
+#     warehouse_str = str(wh).split('\n')
+
+#     for i in range(len(warehouse_str)):
+#         warehouse_str[i] = list(warehouse_str[i])
+
+#     for cell in cells:
+#         warehouse_str[cell[0]][cell[1]] = 'p'
+
+#     out = ''
+#     for char_arr in warehouse_str:
+#         out += ''.join(char_arr)
+#         out += '\n'
+
+#     return out[0:len(out)-1]
+
+def playable_cells(problem, frontier):
+    """
+    """
+    assert isinstance(problem, search.Problem)
+    frontier.append(search.Node(problem.initial))
+    explored = set() # initial empty set of explored states
+    out_cells = set()
+    while frontier:
+        node = frontier.pop()
+        explored.add(node.state)
+        
+        hitWall = False
+        for wall in problem.walls:
+            if (node.state == wall):
+                hitWall = True
+                break
+        if (hitWall == False):
+            out_cells.add(node.state)
+        
+        # Python note: next line uses of a generator
+        frontier.extend(child for child in node.expand(problem)
+                        if child.state not in explored
+                        and child not in frontier)
+    return out_cells
+
+def path_to_location(warehouse, goal):
+    out = search.astar_graph_search(WorkerPathing(warehouse=warehouse, goal=goal, boxes=warehouse.boxes), search.LIFOQueue())
+    return out.solution()
+
+class WorkerPathing(search.Problem):
+    '''
+    Worker Pathing search problem
+    '''
+    
+    def __init__(self, warehouse, goal, boxes=None):
+        self.walls = warehouse.walls
+        if (boxes != None):
+            self.walls = self.walls + boxes
+        self.state = warehouse.worker
+        self.initial = warehouse.worker
+        self.visited = []
+        self.goal = goal
+        self.prevState = None
+    
+    def actions(self, state):
+        """
+        Return the list of worker actions that can be executed in the given state.
+        """
+
+        legal_actions = []
+        # if (state.walls.coord(state.worker.coord.Up) or
+        #     (state.boxes.coord(state.worker.coord.Up) and state.walls.coord(state.worker.coord.Up.Up)) or
+        #     (state.boxes.coord(state.worker.coord.Up) and state.boxes.coord(state.worker.coord.Up.Up))):
+        #     legal_actions = 'Up'
+        
+        workerUpDownLeftRight = []
+        workerUpDownLeftRight.append(tuple((state[0], state[1] - 1)))
+        workerUpDownLeftRight.append(tuple((state[0], state[1] + 1)))
+        workerUpDownLeftRight.append(tuple((state[0] - 1, state[1])))
+        workerUpDownLeftRight.append(tuple((state[0] + 1, state[1])))
+        upDownLeftRight = ['Up', 'Down', 'Left', 'Right']
+        
+        for i, next in enumerate(workerUpDownLeftRight):
+            hitWall = False
+            for wall in self.walls:
+                if (next == wall):
+                    hitWall = True
+                    break
+
+            if (hitWall == False):
+                legal_actions.append(upDownLeftRight[i])
+
+        return legal_actions
+    
+    def result(self, state, action):
+        """
+        Return the state that results from executing the given
+        action in the given state. The action must be one of
+        self.actions(state).
+        """
+        if (action == 'Up'):
+            state = tuple((state[0], state[1] - 1))
+        elif (action == 'Down'):
+            state = tuple((state[0], state[1] + 1))
+        elif (action == 'Left'):
+            state = tuple((state[0] - 1, state[1]))
+        elif (action == 'Right'):
+            state = tuple((state[0] + 1, state[1]))
+        else:
+            raise ValueError
+
+        self.prevState = state
+        self.visited.append(state)
+
+        return state
+    
+    def goal_test(self, state):
+        """Return True if the state is a goal. The default method compares the
+        state to self.goal, as specified in the constructor. Override this
+        method if checking against a single self.goal is not enough."""
+
+        return state == self.goal
+
+    def path_cost(self, c, state1, action, state2):
+        """Return the cost of a solution path that arrives at state2 from
+        state1 via action, assuming cost c to get up to state1. If the problem
+        is such that the path doesn't matter, this function will only look at
+        state2.  If the path does matter, it will consider c and maybe state1
+        and action. The default method costs 1 for every step in the path."""
+        return c + 1
+        
+    def h(self, node):
+        """Heuristic"""
+        return abs(self.goal[0] - node.state[0]) + abs(self.goal[1] - node.state[1])
