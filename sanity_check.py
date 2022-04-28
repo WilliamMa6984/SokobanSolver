@@ -15,6 +15,8 @@ marking your code, make sure that your code runs without errors with this script
 '''
 
 
+from mySokobanSolver import WorkerPathing, graph_search_mark_unplayable, path_to_location
+from search import FIFOQueue, LIFOQueue
 from sokoban import Warehouse
 
 
@@ -87,13 +89,40 @@ def test_solve_weighted_sokoban():
         print('Your answer is different but it might still be correct')
         print('Check that you pushed the right box onto the left target!')
     print(f'Your cost = {cost}, expected cost = {expected_cost}')
-        
-    
+
+def test_pathing():
+    wh = Warehouse()
+    wh.load_warehouse("./warehouses/warehouse_205.txt")
+    print(path_to_location(wh, (2,1), ignoreBox=False))
+
+def test1():
+    wh = Warehouse()
+    wh.load_warehouse("./warehouses/warehouse_01.txt")
+    cells = graph_search_mark_unplayable(WorkerPathing(warehouse=wh, goal=None, boxes=None), FIFOQueue())
+
+    wh_str = str(wh).split('\n')
+    for i in range(len(wh_str)):
+        wh_str[i] = list(wh_str[i])
+
+    for cell in cells:
+        wh_str[cell[0]][cell[1]] = 'p'
+
+    out = ''
+    for i in range(len(wh_str)):
+        out += ''.join(wh_str[i])
+        out += '\n'
+
+    return out[0:len(out)-1]
+
 
 if __name__ == "__main__":
     pass    
 #    print(my_team())  # should print your team
 
-    test_taboo_cells() 
-    test_check_elem_action_seq()
-    test_solve_weighted_sokoban()
+    # test_taboo_cells() 
+    # test_check_elem_action_seq()
+    # test_solve_weighted_sokoban()
+
+    test_pathing()
+
+    # print(test1())

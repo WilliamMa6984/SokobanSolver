@@ -228,11 +228,10 @@ class SokobanPuzzle(search.Problem):
     def __init__(self, warehouse):
         self.walls = warehouse.walls
         self.goals = warehouse.targets
-        # state: combine box + weight
-        # self.state = [[boxes, warehouse.weights[i]] for i, boxes in enumerate(warehouse.boxes)]
-        # self.worker = warehouse.worker 
-        self.state = {'boxes': warehouse.boxes, 'weights': warehouse.weights, 'worker': warehouse.worker}
         self.taboos = warehouse.taboos
+        self.weights = warehouse.weights
+        # state: combine box + worker locations
+        self.state = {'boxes': warehouse.boxes, 'worker': warehouse.worker}
     
     def actions(self, state):
         """
@@ -240,30 +239,15 @@ class SokobanPuzzle(search.Problem):
         
         """
 
-        """
-        Student note:
-        State: location of the worker + boxes -> used to get actions
-        Actions of worker: move worker up down left right, unless theres a wall there, or box against wall, box against box
-        """
+        # State: location of the worker + boxes -> used to get actions
+        # Actions of worker: move worker up down left right, unless theres a wall there, or box against wall, box against box
         
         legal_actions = []
-        """ BOX LEGAL ACTIONS
-        for each box:
-            if (box can move up):
-                legal_actions.append((box[i], 'Up'))
-
-        def box.can move:
-            final_pos = box.Up.coord
-            etc.
-            if (final_pos == taboo_cell):
-                return false
-            if (final_pos == wall):
-                return false
-            if (final_pos == another_box):
-                return false
-
-            return true
-        """
+        # BOX LEGAL ACTIONS
+        # for each box:
+        #     if (box can move up):
+        #         legal_actions.append((box[i], WorkerToLocation(location to move up) + moveUp))
+        # checkactionsequence(legalaction[i])
 
         # if next_box_location not in self.taboos:
         #     legal_actions.append(action) 
