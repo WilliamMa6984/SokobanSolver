@@ -43,8 +43,7 @@ def my_team():
     of triplet of the form (student_number, first_name, last_name)
     
     '''
-#    return [ (1234567, 'Ada', 'Lovelace'), (1234568, 'Grace', 'Hopper'), (1234569, 'Eva', 'Tardos') ]
-    raise NotImplementedError()
+    return [ (10491694, 'William', 'Ma'), (10474609, 'David', 'Truong') ]
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -79,7 +78,7 @@ def taboo_cells(warehouse):
     x_sz = max(len(row) for row in warehouse_str)
 
     def replaceTrailingSpace(string, sz, replacement):
-        # strip trailing space and replace with char
+        # strip trailing space or replacement-char, and replace with char
         string = string.lstrip(' ' + replacement)
         string = (replacement * (sz - len(string))) + string
 
@@ -99,11 +98,12 @@ def taboo_cells(warehouse):
         # replace with space
         warehouse_str[y] = warehouse_str[y].replace('*', '.').replace('!', '.').replace('@', ' ').replace('$', ' ')
 
-    # remove trailing vertical spaces
+    # rotate 90
     for y in range(len(warehouse_str)):
         warehouse_str[y] = list(warehouse_str[y])
     warehouse_str = [[warehouse_str[j][i] for j in range(len(warehouse_str))] for i in range(len(warehouse_str[0])-1,-1,-1)] # rotate 90
 
+    # remove the trailing vertical spaces
     for x in range(len(warehouse_str)):
         y_sz = len(warehouse_str[x])
         warehouse_str[x] = ''.join(char for char in warehouse_str[x])
@@ -118,11 +118,12 @@ def taboo_cells(warehouse):
         y_sz = len(warehouse_str[x])
         warehouse_str[x] = ''.join(char for char in warehouse_str[x])
 
+    # check for all spaces if they are accessible by the player
     warehouse_str = mark_unplayable(warehouse_str, warehouse)
-    print("unplayables:")
-    for str_ in warehouse_str:
-        print(str_)
-    print("done")
+    # print("unplayables:")
+    # for str_ in warehouse_str:
+    #     print(str_)
+    # print("done")
 
     tabooCorners = []
     # Rule 1: find corners
@@ -231,6 +232,7 @@ class SokobanPuzzle(search.Problem):
         # self.state = [[boxes, warehouse.weights[i]] for i, boxes in enumerate(warehouse.boxes)]
         # self.worker = warehouse.worker 
         self.state = {'boxes': warehouse.boxes, 'weights': warehouse.weights, 'worker': warehouse.worker}
+        self.taboos = warehouse.taboos
     
     def actions(self, state):
         """
@@ -263,13 +265,8 @@ class SokobanPuzzle(search.Problem):
             return true
         """
 
-        """ OR WORKER LEGAL ACTIONS
-        if (state.walls.coord(state.worker.coord.Up) or
-            (state.boxes.coord(state.worker.coord.Up) and state.walls.coord(state.worker.coord.Up.Up)) or
-            (state.boxes.coord(state.worker.coord.Up) and state.boxes.coord(state.worker.coord.Up.Up))):
-            legal_actions = 'Up'
-        etc.
-        """
+        # if next_box_location not in self.taboos:
+        #     legal_actions.append(action) 
 
         raise NotImplementedError
     
@@ -281,12 +278,6 @@ class SokobanPuzzle(search.Problem):
         """
 
         raise NotImplementedError
-
-    # state class?
-    # class state():
-    #     def __init__(self, boxes, worker):
-    #         self.boxes = boxes
-    #         self.worker = worker
 
     def goal_test(self, state):
         """Return True if the state is a goal. The default method compares the
@@ -375,7 +366,8 @@ def solve_weighted_sokoban(warehouse):
     print("worker: ", warehouse.worker)
     
     print("original map: ")
-    print(str(warehouse))
+    string = str(warehouse)
+    print(string)
 
     print("taboo map: ")
     print(taboo_cells(warehouse))
@@ -384,27 +376,79 @@ def solve_weighted_sokoban(warehouse):
     # print("mark playable:")
     # print(markPlayable(warehouse))
 
+    str_taboo_cells = taboo_cells(warehouse)
+    taboo_cells_coords = taboo_string_to_tuples(str_taboo_cells)
+    warehouse.taboos = taboo_cells_coords
+
+    # just checking the string, using taboos coords
+    print(warehouse.taboos)
+    string_arr = string.split('\n')
+    for i in range(len(string_arr)):
+        string_arr[i] = list(string_arr[i])
+    
+    for taboo in warehouse.taboos:
+        string_arr[taboo[1]][taboo[0]] = 'X'
+    
+    out = ''
+    for string in string_arr:
+        for letter in string:
+            out += letter
+        out += '\n'
+
+    print("out taboo map:")
+    print(out[0:len(out)-1])
+
+    # SokobanPuzzle(warehouse)
+
     # raise NotImplementedError
     return ['Down', 'Left', 'Up', 'Right', 'Right', 'Right', 'Down', 'Left', 'Up', 'Left', 'Left', 'Down', 'Down', 'Right', 'Up', 'Left', 'Up', 'Right', 'Up', 'Up', 'Left', 'Down', 'Right', 'Down', 'Down', 'Right', 'Right', 'Up', 'Left', 'Down', 'Left', 'Up'], 0
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
+def taboo_string_to_tuples(str_taboo_cells):
+    """
+    @param
+        str_taboo_cells: the string output of taboo_cells() function
+    @return
+        An array containing the (x,y) tuple of every taboo cell
+    """
+    strings = str_taboo_cells.split('\n')
+
+    return [(x,y) for y, string in enumerate(strings) for x, letter in enumerate(list(string)) if (letter == 'X')]
+
+
 def mark_unplayable(warehouse_str, warehouse):
+    """
+    Marks spaces as 'u' if the cell is inaccessible by the player
+    @param
+        warehouse_str: string representation of the warehouse
+        warehouse: the initial warehouse configuration, used to find walls and the current worker location
+    @return
+        Returns the resulting string 
+    """
     for y, string in enumerate(warehouse_str):
         x_arr = [i for i, letter in enumerate(list(string)) if letter == ' ']
         
         for x in x_arr:
-            if path_to_location(warehouse, (x, y), ignoreBox=True) == None:
+            if path_to_location(warehouse.walls, warehouse.worker, (x, y), None, ignoreBox=True) == None:
                 warehouse_str[y] = warehouse_str[y][:x] + 'u' + warehouse_str[y][x+1:]
     
     return warehouse_str
 
-def path_to_location(warehouse, goal, ignoreBox):
-    if (ignoreBox == True):
+def path_to_location(walls, worker, goal, boxes, ignoreBox):
+    """
+    Gets the path from the current worker location to the 
+    @param
+        warehouse: Current warehouse configuration
+        goal: Goal location (single (x, y) tuple)
+        ignoreBox: Whether to ignore boxes when path finding
+    @return
+        The solution path, None if no solution is found. Path cost is equivalent to the length of the solution.
+    """
+    if (ignoreBox):
         boxes = None
-    else:
-        boxes = warehouse.boxes
-    out = search.astar_graph_search(WorkerPathing(warehouse=warehouse, goal=goal, boxes=boxes))
+    out = search.astar_graph_search(WorkerPathing(walls, worker, goal, boxes))
+
     if out == None:
         return None
     else:
@@ -415,12 +459,12 @@ class WorkerPathing(search.Problem):
     Worker Pathing search problem
     '''
     
-    def __init__(self, warehouse, goal, boxes=None):
-        self.walls = warehouse.walls
+    def __init__(self, walls, worker, goal, boxes=None):
+        self.obstacles = walls
         if (boxes != None):
-            self.walls = self.walls + boxes
-        self.state = warehouse.worker
-        self.initial = warehouse.worker
+            self.obstacles = self.obstacles + boxes
+        self.state = worker
+        self.initial = worker
         self.visited = []
         self.goal = goal
         self.prevState = None
@@ -440,7 +484,7 @@ class WorkerPathing(search.Problem):
         upDownLeftRight = ['Up', 'Down', 'Left', 'Right']
         
         for i, next in enumerate(workerUpDownLeftRight):
-            if next not in self.walls:
+            if next not in self.obstacles:
                 legal_actions.append(upDownLeftRight[i])
 
         return legal_actions
@@ -461,9 +505,6 @@ class WorkerPathing(search.Problem):
             state = tuple((state[0] + 1, state[1]))
         else:
             raise ValueError
-
-        self.prevState = state
-        self.visited.append(state)
 
         return state
     
