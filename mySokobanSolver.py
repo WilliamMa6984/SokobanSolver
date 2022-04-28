@@ -440,13 +440,7 @@ class WorkerPathing(search.Problem):
         upDownLeftRight = ['Up', 'Down', 'Left', 'Right']
         
         for i, next in enumerate(workerUpDownLeftRight):
-            hitWall = False
-            for wall in self.walls:
-                if (next == wall):
-                    hitWall = True
-                    break
-
-            if (hitWall == False):
+            if next not in self.walls:
                 legal_actions.append(upDownLeftRight[i])
 
         return legal_actions
@@ -487,7 +481,7 @@ class WorkerPathing(search.Problem):
         state2.  If the path does matter, it will consider c and maybe state1
         and action. The default method costs 1 for every step in the path."""
         return c + 1
-        
+    
     def h(self, node):
         """Heuristic"""
         return abs(self.goal[0] - node.state[0]) + abs(self.goal[1] - node.state[1])
