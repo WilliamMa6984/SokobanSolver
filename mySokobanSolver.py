@@ -316,7 +316,28 @@ def check_elem_action_seq(warehouse, action_seq):
     
     # How does this relate to the rest of the code - where would it be used?
 
-    raise NotImplementedError()
+
+    for i in action_seq:
+        warehouse.worker = movement(i, warehouse.worker)
+        if warehouse.worker in warehouse.boxes:
+            boxToMove = [x for x in warehouse.boxes if warehouse.worker in x] # might need to use (==) ?
+            newBoxCoord = movement(i, boxToMove)
+            if newBoxCoord in warehouse.boxes or warehouse.walls:
+                return 'Impossible'
+            warehouse.boxes = [y.replace(boxToMove, newBoxCoord) for y in warehouse.boxes]
+        elif warehouse.worker in warehouse.walls:
+            return 'Impossible'
+    return str(warehouse)
+
+def movement(direction, coord):
+    if direction == "Up":
+        return tuple((coord[0], coord[1] - 1))
+    if direction == "Down":
+        return tuple((coord[0], coord[1] + 1))
+    if direction == "Left":
+        return tuple((coord[0] - 1, coord[1]))
+    if direction == "Right":
+        return tuple((coord[0] + 1, coord[1]))
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
