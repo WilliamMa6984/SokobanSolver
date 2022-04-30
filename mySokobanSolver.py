@@ -219,6 +219,20 @@ class HashedWarehouseState:
             other: f(n), a calculated value (using box-target distance and weights)
         """
 
+def getClosestTarget(targets, boxCoord, boxWeight):
+    closestTarget = None
+    maxIndex = 0
+
+    for index, target in enumerate(targets):
+        targetDistance = manhattan(boxCoord, target) * boxWeight
+        if closestTarget is None or  closestTarget < targetDistance :
+            closestTarget = targetDistance
+            maxIndex = index
+    return maxIndex
+
+def manhattan(a, b):
+    return (a[0] + a[1]) - (b[0] + b[1])
+
 class SokobanPuzzle(search.Problem):
     '''
     An instance of the class 'SokobanPuzzle' represents a Sokoban puzzle.
