@@ -193,12 +193,31 @@ def any_box_in_taboo(map_str, tabooMap_str):
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-class SokobanPuzzleState:
+class HashedWarehouseState:
     def __init__(self, warehouse):
-        self.walls = warehouse.walls.copy()
-        self.boxes = warehouse.boxes.copy()
-        self.weights = warehouse.weights.copy()
-        self.worker = warehouse.worker
+        self.warehouse = copy_warehouse_fully(warehouse)
+
+    def __hash__(self):
+        """
+        Object hash - must be equal for the same state
+        """
+        return hash(str(self.warehouse))
+
+    def __eq__(self, other):
+        """
+        Equality comparison for the state
+        """
+        if not isinstance(other, HashedWarehouseState):
+            return False
+        return str(self.warehouse) == str(other.warehouse)
+    
+    def __lt__(self, other):
+        """
+        Check if this state value is less than other value
+        
+        @param
+            other: f(n), a calculated value (using box-target distance and weights)
+        """
 
 class SokobanPuzzle(search.Problem):
     '''
@@ -223,7 +242,9 @@ class SokobanPuzzle(search.Problem):
     #     You are allowed (and encouraged) to use auxiliary functions and classes
     
     def __init__(self, warehouse):
-        self.initial = SokobanPuzzleState(warehouse)
+        self.walls = warehouse.walls.copy()
+        self.weights = warehouse.weights.copy()
+        self.initial = HashedWarehouseState(warehouse)
         self.taboo_map = taboo_cells(warehouse) # string rep
     
     def actions(self, state):
@@ -236,7 +257,7 @@ class SokobanPuzzle(search.Problem):
         legal_actions = []
         directions = ['Up', 'Down', 'Left', 'Right']
         opposite_directions = ['Down', 'Up', 'Right', 'Left']
-        warehouse = copy_warehouse_fully(state)
+        warehouse = copy_warehouse_fully(state.warehouse)
 
         # BOX LEGAL ACTIONS
         for boxId, box in enumerate(warehouse.boxes):
@@ -260,15 +281,17 @@ class SokobanPuzzle(search.Problem):
         action in the given state. The action must be one of
         self.actions(state).
         """
+        warehouse = copy_warehouse_fully(state.warehouse)
+
         boxID = action['boxIndex']
         lastAction = action['action'][len(action['action'])-1]
         
-        state.boxes[boxID] = movement(lastAction, state.boxes[boxID])
+        warehouse.boxes[boxID] = movement(lastAction, warehouse.boxes[boxID])
 
         for move in action['action']:
-            state.worker = movement(move, state.worker)
+            warehouse.worker = movement(move, warehouse.worker)
 
-        return state
+        return HashedWarehouseState(warehouse)
 
     def goal_test(self, state):
         """Return True if the state is a goal. The default method compares the
@@ -276,7 +299,7 @@ class SokobanPuzzle(search.Problem):
         method if checking against a single self.goal is not enough."""
 
         # count number of boxes not in target square using string representation
-        return str(state).count('$') == 0
+        return str(state.warehouse).count('$') == 0
 
     def path_cost(self, c, state1, action, state2):
         """Return the cost of a solution path that arrives at state2 from
@@ -285,14 +308,12 @@ class SokobanPuzzle(search.Problem):
         state2.  If the path does matter, it will consider c and maybe state1
         and action. The default method costs 1 for every step in the path."""
         # cost = length of all actions except last, + box weight of the box
-        print(action)
-        print(action['action'])
-        print(action['boxIndex'])
-        return c + len(action['action'])-1 + state2.weights(action['boxIndex'])
+        return c + len(action['action'])-1 + self.weights[action['boxIndex']]
         
     def h(self, node):
         """Heuristic"""
-        return NotImplementedError
+        print(node)
+        return 0
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -431,12 +452,13 @@ def solve_weighted_sokoban(warehouse):
 
     # SokobanPuzzle(warehouse)
     
-    a = search.breadth_first_graph_search(SokobanPuzzle(warehouse))
+    a = search.astar_graph_search(SokobanPuzzle(warehouse))
 
-    print(a)
+    print(a.solution())
 
     return ['Right', 'Right', 'Down', 'Left'], 0
     # return ['Down', 'Left', 'Up', 'Right', 'Right', 'Right', 'Down', 'Left', 'Up', 'Left', 'Left', 'Down', 'Down', 'Right', 'Up', 'Left', 'Up', 'Right', 'Up', 'Up', 'Left', 'Down', 'Right', 'Down', 'Down', 'Right', 'Right', 'Up', 'Left', 'Down', 'Left', 'Up'], 0
+
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -469,7 +491,7 @@ def path_to_location(warehouse, goal, ignoreBox):
         The solution path - a list of directions, None if no solution is found. Path cost is equivalent to the length of the solution.
     """
 
-    out = search.astar_graph_search(WorkerPathing(warehouse, goal, ignoreBox))
+    out = search.breadth_first_graph_search(WorkerPathing(warehouse, goal, ignoreBox))
 
     if out == None:
         return None
