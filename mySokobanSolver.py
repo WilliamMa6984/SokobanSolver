@@ -205,15 +205,24 @@ class SokobanPuzzle(search.Problem):
         """
         
         legal_actions = []
+        directions = ['Up', 'Down', 'Left', 'Right']
+        opposite_directions = ['Down', 'Up', 'Right', 'Left']
+        warehouse = copy_warehouse_fully(state)
 
         # BOX LEGAL ACTIONS
-        # for boxId, box in enumerate(state.boxes):
-        #     if (box can move up):
-        #         actions = WorkerToLocation(location to move up, ignoreBox=False) + moveUp
-        #         result_map = checkactionsequence(actions)
-        #         isTaboo = compareTaboo(result_map, self.taboo_map)
+        for boxId, box in enumerate(warehouse.boxes):
+            for i, direction in enumerate(directions):
+                actions = path_to_location(warehouse, movement(opposite_directions[i], box), ignoreBox=False)
+                if actions == None:
+                    continue
+                actions.append(direction)
+                legalMap = check_elem_action_seq(warehouse, actions)
+                if legalMap == 'Impossible':
+                    continue
+                isTaboo = any_box_in_taboo(legalMap, self.taboo_map)
+                if isTaboo == False:
+                    legal_actions.append({'action': actions, 'boxIndex': boxId})
                 
-        #         legal_actions.append({'action': action, 'boxIndex': boxId})
 
         # if next_box_location not in self.taboos:
         #     legal_actions.append({'action': action, 'boxIndex': boxId})
