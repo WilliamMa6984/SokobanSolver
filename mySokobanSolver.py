@@ -77,53 +77,21 @@ def taboo_cells(warehouse):
     warehouse_str = str(warehouse).split('\n')
     x_sz = max(len(row) for row in warehouse_str)
 
-    def replaceTrailingSpace(string, sz, replacement):
-        # strip trailing space or replacement-char, and replace with char
-        string = string.lstrip(' ' + replacement)
-        string = (replacement * (sz - len(string))) + string
-
-        string = string.rstrip(' ' + replacement)
-        string = string + (replacement * (sz - len(string)))
-
-        return string
-
     # remove trailing horizontal spaces
     for y in range(len(warehouse_str)):
         # pad right until reach x_sz
         if (len(warehouse_str[y]) < x_sz):
             warehouse_str[y] = warehouse_str[y] + ' ' * (x_sz - len(warehouse_str[y]))
 
-        warehouse_str[y] = replaceTrailingSpace(warehouse_str[y], x_sz, 'u')
-
         # replace with space
         warehouse_str[y] = warehouse_str[y].replace('*', '.').replace('!', '.').replace('@', ' ').replace('$', ' ')
 
-    # rotate 90
-    for y in range(len(warehouse_str)):
-        warehouse_str[y] = list(warehouse_str[y])
-    warehouse_str = [[warehouse_str[j][i] for j in range(len(warehouse_str))] for i in range(len(warehouse_str[0])-1,-1,-1)] # rotate 90
-
-    # remove the trailing vertical spaces
-    for x in range(len(warehouse_str)):
-        y_sz = len(warehouse_str[x])
-        warehouse_str[x] = ''.join(char for char in warehouse_str[x])
-        warehouse_str[x] = replaceTrailingSpace(warehouse_str[x], y_sz, 'u')
-
-    # rotate -90
-    for y in range(len(warehouse_str)):
-        warehouse_str[y] = list(warehouse_str[y])
-    warehouse_str = [[warehouse_str[j][i] for j in range(len(warehouse_str)-1,-1,-1)] for i in range(len(warehouse_str[0]))]
-
-    for x in range(len(warehouse_str)):
-        y_sz = len(warehouse_str[x])
-        warehouse_str[x] = ''.join(char for char in warehouse_str[x])
-
     # check for all spaces if they are accessible by the player
     warehouse_str = mark_unplayable(warehouse_str, warehouse)
-    # print("unplayables:")
-    # for str_ in warehouse_str:
-    #     print(str_)
-    # print("done")
+    print("unplayables:")
+    for str_ in warehouse_str:
+        print(str_)
+    print("done")
 
     tabooCorners = []
     # Rule 1: find corners
@@ -226,31 +194,28 @@ class SokobanPuzzle(search.Problem):
     #     You are allowed (and encouraged) to use auxiliary functions and classes
     
     def __init__(self, warehouse):
-        self.walls = warehouse.walls
-        self.goals = warehouse.targets
-        self.taboos = warehouse.taboos
-        self.weights = warehouse.weights
-        # state: combine box + worker locations
-        self.state = {'boxes': warehouse.boxes, 'worker': warehouse.worker}
+        self.initial = warehouse
+        self.taboo_map = taboo_cells(warehouse) # string rep
     
     def actions(self, state):
         """
         Return the list of actions that can be executed in the given state.
-        
+        Must be a list of dictionary with {'action': ..., 'boxIndex': ...},
+        with each entry moving a single box once
         """
-
-        # State: location of the worker + boxes -> used to get actions
-        # Actions of worker: move worker up down left right, unless theres a wall there, or box against wall, box against box
         
         legal_actions = []
+
         # BOX LEGAL ACTIONS
-        # for each box:
+        # for i, box in boxes:
         #     if (box can move up):
-        #         legal_actions.append((box[i], WorkerToLocation(location to move up) + moveUp))
-        # checkactionsequence(legalaction[i])
+        #         actions = WorkerToLocation(location to move up, ignoreBox=False) + moveUp
+        #         checkactionsequence(actions)
+        #         compareTaboo()
+        #         legal_actions.append((box[i], actions))
 
         # if next_box_location not in self.taboos:
-        #     legal_actions.append(action) 
+        #     legal_actions.append({'action': action, 'boxIndex': boxId})
 
         raise NotImplementedError
     
@@ -260,14 +225,23 @@ class SokobanPuzzle(search.Problem):
         action in the given state. The action must be one of
         self.actions(state).
         """
+        boxID = action['boxIndex']
+        lastAction = action['action'][len(action['action'])-1]
+        
+        state.boxes[boxID] = movement(lastAction, state.boxes[boxID])
 
-        raise NotImplementedError
+        for move in action['action']:
+            state.worker = movement(move, state.worker)
+
+        return state
 
     def goal_test(self, state):
         """Return True if the state is a goal. The default method compares the
         state to self.goal, as specified in the constructor. Override this
         method if checking against a single self.goal is not enough."""
-        return state == self.goal
+
+        # count number of boxes not in target square using string representation
+        return str(state).count('$') == 0
 
     def path_cost(self, c, state1, action, state2):
         """Return the cost of a solution path that arrives at state2 from
@@ -275,16 +249,12 @@ class SokobanPuzzle(search.Problem):
         is such that the path doesn't matter, this function will only look at
         state2.  If the path does matter, it will consider c and maybe state1
         and action. The default method costs 1 for every step in the path."""
-        return c + 1
+        # cost = length of all actions except last, + box weight of the box
+        return c + len(action['action'])-1 + state2.weights(action['boxIndex'])
         
     def h(self, node):
         """Heuristic"""
         return NotImplementedError
-
-    def value(self, state):
-        """For optimization problems, each state has a value.  Hill-climbing
-        and related algorithms try to maximize this value."""
-        raise NotImplementedError
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -313,23 +283,41 @@ def check_elem_action_seq(warehouse, action_seq):
     '''
     
     ##         "INSERT YOUR CODE HERE"
+    warehouse_out = copy_warehouse_fully(warehouse) # copy the warehouse so that changes do not spill over to the actual warehouse
     
-    # How does this relate to the rest of the code - where would it be used?
-
-
     for i in action_seq:
-        warehouse.worker = movement(i, warehouse.worker)
-        if warehouse.worker in warehouse.boxes:
-            boxToMove = [x for x in warehouse.boxes if warehouse.worker in x] # might need to use (==) ?
-            newBoxCoord = movement(i, boxToMove)
-            if newBoxCoord in warehouse.boxes or warehouse.walls:
-                return 'Impossible'
-            warehouse.boxes = [y.replace(boxToMove, newBoxCoord) for y in warehouse.boxes]
-        elif warehouse.worker in warehouse.walls:
+        warehouse_out.worker = movement(i, warehouse_out.worker)
+        if warehouse_out.worker in warehouse_out.boxes:
+            boxToMoveInds = [i for i, x in enumerate(warehouse_out.boxes) if warehouse_out.worker == x] # might need to use (==) ?
+            for boxInd in boxToMoveInds:
+                newBoxCoord = movement(i, warehouse_out.boxes[boxInd])
+                if newBoxCoord in warehouse_out.boxes or newBoxCoord in warehouse_out.walls:
+                    return 'Impossible'
+                warehouse_out.boxes[boxInd] = newBoxCoord
+        elif warehouse_out.worker in warehouse_out.walls:
             return 'Impossible'
-    return str(warehouse)
+    
+    return str(warehouse_out)
+
+def copy_warehouse_fully(warehouse):
+    """
+    Creates an unlinked copy of the warehouse, so changes to a warehouse
+    inside a function does not spill over to the parent function.
+    """
+    warehouse_out = warehouse.copy()
+    warehouse_out.boxes = warehouse.boxes.copy()
+    return warehouse_out
 
 def movement(direction, coord):
+    """
+    Gives the resulting coordinate after applying the 1-space move
+
+    @param
+        direction: direction of the movement
+        coord: the old coordinated
+
+    @return the new coordinate
+    """
     if direction == "Up":
         return tuple((coord[0], coord[1] - 1))
     if direction == "Down":
@@ -381,46 +369,34 @@ def solve_weighted_sokoban(warehouse):
     # print("mark playable:")
     # print(markPlayable(warehouse))
 
-    str_taboo_cells = taboo_cells(warehouse)
-    taboo_cells_coords = taboo_string_to_tuples(str_taboo_cells)
-    warehouse.taboos = taboo_cells_coords
+    # str_taboo_cells = taboo_cells(warehouse)
+    # taboo_cells_coords = taboo_string_to_tuples(str_taboo_cells)
+    # warehouse.taboos = taboo_cells_coords
 
     # just checking the string, using taboos coords
-    print(warehouse.taboos)
-    string_arr = string.split('\n')
-    for i in range(len(string_arr)):
-        string_arr[i] = list(string_arr[i])
+    # print(warehouse.taboos)
+    # string_arr = string.split('\n')
+    # for i in range(len(string_arr)):
+    #     string_arr[i] = list(string_arr[i])
     
-    for taboo in warehouse.taboos:
-        string_arr[taboo[1]][taboo[0]] = 'X'
+    # for taboo in warehouse.taboos:
+    #     string_arr[taboo[1]][taboo[0]] = 'X'
     
-    out = ''
-    for string in string_arr:
-        for letter in string:
-            out += letter
-        out += '\n'
+    # out = ''
+    # for string in string_arr:
+    #     for letter in string:
+    #         out += letter
+    #     out += '\n'
 
-    print("out taboo map:")
-    print(out[0:len(out)-1])
+    # print("out taboo map:")
+    # print(out[0:len(out)-1])
 
     # SokobanPuzzle(warehouse)
 
-    # raise NotImplementedError
-    return ['Down', 'Left', 'Up', 'Right', 'Right', 'Right', 'Down', 'Left', 'Up', 'Left', 'Left', 'Down', 'Down', 'Right', 'Up', 'Left', 'Up', 'Right', 'Up', 'Up', 'Left', 'Down', 'Right', 'Down', 'Down', 'Right', 'Right', 'Up', 'Left', 'Down', 'Left', 'Up'], 0
+    return ['Right', 'Right', 'Down', 'Left'], 0
+    # return ['Down', 'Left', 'Up', 'Right', 'Right', 'Right', 'Down', 'Left', 'Up', 'Left', 'Left', 'Down', 'Down', 'Right', 'Up', 'Left', 'Up', 'Right', 'Up', 'Up', 'Left', 'Down', 'Right', 'Down', 'Down', 'Right', 'Right', 'Up', 'Left', 'Down', 'Left', 'Up'], 0
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-def taboo_string_to_tuples(str_taboo_cells):
-    """
-    @param
-        str_taboo_cells: the string output of taboo_cells() function
-    @return
-        An array containing the (x,y) tuple of every taboo cell
-    """
-    strings = str_taboo_cells.split('\n')
-
-    return [(x,y) for y, string in enumerate(strings) for x, letter in enumerate(list(string)) if (letter == 'X')]
-
 
 def mark_unplayable(warehouse_str, warehouse):
     """
@@ -435,12 +411,12 @@ def mark_unplayable(warehouse_str, warehouse):
         x_arr = [i for i, letter in enumerate(list(string)) if letter == ' ']
         
         for x in x_arr:
-            if path_to_location(warehouse.walls, warehouse.worker, (x, y), None, ignoreBox=True) == None:
+            if path_to_location(warehouse, (x, y), ignoreBox=True) == None:
                 warehouse_str[y] = warehouse_str[y][:x] + 'u' + warehouse_str[y][x+1:]
     
     return warehouse_str
 
-def path_to_location(walls, worker, goal, boxes, ignoreBox):
+def path_to_location(warehouse, goal, ignoreBox):
     """
     Gets the path from the current worker location to the 
     @param
@@ -450,9 +426,8 @@ def path_to_location(walls, worker, goal, boxes, ignoreBox):
     @return
         The solution path, None if no solution is found. Path cost is equivalent to the length of the solution.
     """
-    if (ignoreBox):
-        boxes = None
-    out = search.astar_graph_search(WorkerPathing(walls, worker, goal, boxes))
+
+    out = search.astar_graph_search(WorkerPathing(warehouse, goal, ignoreBox))
 
     if out == None:
         return None
@@ -464,15 +439,13 @@ class WorkerPathing(search.Problem):
     Worker Pathing search problem
     '''
     
-    def __init__(self, walls, worker, goal, boxes=None):
-        self.obstacles = walls
-        if (boxes != None):
-            self.obstacles = self.obstacles + boxes
-        self.state = worker
-        self.initial = worker
-        self.visited = []
+    def __init__(self, warehouse, goal, ignoreBox):
+        if (ignoreBox):
+            self.obstacles = warehouse.walls
+        else:
+            self.obstacles = warehouse.walls + warehouse.boxes
         self.goal = goal
-        self.prevState = None
+        self.initial = warehouse.worker
     
     def actions(self, state):
         """
@@ -481,14 +454,10 @@ class WorkerPathing(search.Problem):
 
         legal_actions = []
         
-        workerUpDownLeftRight = []
-        workerUpDownLeftRight.append(tuple((state[0], state[1] - 1)))
-        workerUpDownLeftRight.append(tuple((state[0], state[1] + 1)))
-        workerUpDownLeftRight.append(tuple((state[0] - 1, state[1])))
-        workerUpDownLeftRight.append(tuple((state[0] + 1, state[1])))
         upDownLeftRight = ['Up', 'Down', 'Left', 'Right']
         
-        for i, next in enumerate(workerUpDownLeftRight):
+        for i, direction in enumerate(upDownLeftRight):
+            next = movement(direction, state)
             if next not in self.obstacles:
                 legal_actions.append(upDownLeftRight[i])
 
@@ -500,18 +469,8 @@ class WorkerPathing(search.Problem):
         action in the given state. The action must be one of
         self.actions(state).
         """
-        if (action == 'Up'):
-            state = tuple((state[0], state[1] - 1))
-        elif (action == 'Down'):
-            state = tuple((state[0], state[1] + 1))
-        elif (action == 'Left'):
-            state = tuple((state[0] - 1, state[1]))
-        elif (action == 'Right'):
-            state = tuple((state[0] + 1, state[1]))
-        else:
-            raise ValueError
 
-        return state
+        return movement(action, state)
     
     def goal_test(self, state):
         """Return True if the state is a goal. The default method compares the

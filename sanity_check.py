@@ -15,8 +15,7 @@ marking your code, make sure that your code runs without errors with this script
 '''
 
 
-from mySokobanSolver import WorkerPathing, graph_search_mark_unplayable, path_to_location
-from search import FIFOQueue, LIFOQueue
+from mySokobanSolver import SokobanPuzzle, path_to_location
 from sokoban import Warehouse
 
 
@@ -93,27 +92,25 @@ def test_solve_weighted_sokoban():
 def test_pathing():
     wh = Warehouse()
     wh.load_warehouse("./warehouses/warehouse_205.txt")
-    print(path_to_location(wh, (2,1), ignoreBox=False))
+    print(path_to_location(wh, (2,1), ignoreBox=False) == ['Down', 'Left', 'Left', 'Up', 'Up', 'Left', 'Up', 'Up', 'Left', 'Left', 'Left', 'Left', 'Left', 'Left', 'Left', 'Left', 'Up', 'Up', 'Up'])
 
-def test1():
+def sokoban_results_test():
     wh = Warehouse()
-    wh.load_warehouse("./warehouses/warehouse_01.txt")
-    cells = graph_search_mark_unplayable(WorkerPathing(warehouse=wh, goal=None, boxes=None), FIFOQueue())
+    wh.load_warehouse("./warehouses/warehouse_01_a.txt")
+    action = {'action': ['Right', 'Right', 'Down', 'Left'], 'boxIndex': 1}
 
-    wh_str = str(wh).split('\n')
-    for i in range(len(wh_str)):
-        wh_str[i] = list(wh_str[i])
+    t = check_elem_action_seq(wh, action['action'])
+    
+    sp = SokobanPuzzle(wh)
+    wh_out = sp.result(wh, action)
 
-    for cell in cells:
-        wh_str[cell[0]][cell[1]] = 'p'
+    print('t')
+    print(t)
 
-    out = ''
-    for i in range(len(wh_str)):
-        out += ''.join(wh_str[i])
-        out += '\n'
+    print('str(wh_out)')
+    print(str(wh_out))
 
-    return out[0:len(out)-1]
-
+    print(t == str(wh_out))
 
 if __name__ == "__main__":
     pass    
@@ -123,6 +120,6 @@ if __name__ == "__main__":
     # test_check_elem_action_seq()
     # test_solve_weighted_sokoban()
 
-    test_pathing()
+    # test_pathing()
 
-    # print(test1())
+    sokoban_results_test()
