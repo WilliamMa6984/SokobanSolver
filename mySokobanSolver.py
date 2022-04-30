@@ -200,19 +200,20 @@ class SokobanPuzzle(search.Problem):
     def actions(self, state):
         """
         Return the list of actions that can be executed in the given state.
-        Must be a list of dictionary with {'action': ..., 'boxIndex': ...},
+        Must be a list of dictionary with {'action': ['Up', 'Left'], 'boxIndex': 1},
         with each entry moving a single box once
         """
         
         legal_actions = []
 
         # BOX LEGAL ACTIONS
-        # for i, box in boxes:
+        # for boxId, box in enumerate(state.boxes):
         #     if (box can move up):
         #         actions = WorkerToLocation(location to move up, ignoreBox=False) + moveUp
-        #         checkactionsequence(actions)
-        #         compareTaboo()
-        #         legal_actions.append((box[i], actions))
+        #         result_map = checkactionsequence(actions)
+        #         isTaboo = compareTaboo(result_map, self.taboo_map)
+                
+        #         legal_actions.append({'action': action, 'boxIndex': boxId})
 
         # if next_box_location not in self.taboos:
         #     legal_actions.append({'action': action, 'boxIndex': boxId})
