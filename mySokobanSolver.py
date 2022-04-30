@@ -88,10 +88,10 @@ def taboo_cells(warehouse):
 
     # check for all spaces if they are accessible by the player
     warehouse_str = mark_unplayable(warehouse_str, warehouse)
-    print("unplayables:")
-    for str_ in warehouse_str:
-        print(str_)
-    print("done")
+    # print("unplayables:")
+    # for str_ in warehouse_str:
+    #     print(str_)
+    # print("done")
 
     tabooCorners = []
     # Rule 1: find corners
@@ -167,6 +167,29 @@ def taboo_cells(warehouse):
         out_str += '\n'
 
     return out_str[0:len(out_str)-1]
+
+def any_box_in_taboo(map_str, tabooMap_str):
+    """
+    Checks whether any box in the input map also occupies a taboo cell.
+
+    @param
+        map: The input map that keeps track of the box
+        tabooMap: The map containing the taboo cell information
+    @return
+        Returns true if a box is in a taboo cell.
+    """
+    
+    map_arr = map_str.split('\n')
+    tabooMap_arr = tabooMap_str.split('\n')
+
+    assert len(map_arr) == len(tabooMap_arr)
+
+    for i, taboo_row in enumerate(tabooMap_arr):
+        for j, taboo_letter in enumerate(list(taboo_row)):
+            if taboo_letter == 'X' and map_arr[i][j] == '$':
+                return True
+
+    return False
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -428,13 +451,13 @@ def mark_unplayable(warehouse_str, warehouse):
 
 def path_to_location(warehouse, goal, ignoreBox):
     """
-    Gets the path from the current worker location to the 
+    Gets the path from the current worker location to the goal location
     @param
         warehouse: Current warehouse configuration
         goal: Goal location (single (x, y) tuple)
-        ignoreBox: Whether to ignore boxes when path finding
+        ignoreBox: Whether to ignore boxes or go around the box when path finding
     @return
-        The solution path, None if no solution is found. Path cost is equivalent to the length of the solution.
+        The solution path - a list of directions, None if no solution is found. Path cost is equivalent to the length of the solution.
     """
 
     out = search.astar_graph_search(WorkerPathing(warehouse, goal, ignoreBox))
