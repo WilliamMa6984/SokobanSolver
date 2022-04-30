@@ -195,7 +195,7 @@ def any_box_in_taboo(map_str, tabooMap_str):
 
 class HashedWarehouseState:
     def __init__(self, warehouse):
-        self.warehouse = copy_warehouse_fully(warehouse)
+        self.warehouse = warehouse
 
     def __hash__(self):
         """
@@ -208,8 +208,8 @@ class HashedWarehouseState:
         Equality comparison for the state
         """
         assert isinstance(other, HashedWarehouseState)
-        
-        return str(self.warehouse) == str(other.warehouse)
+
+        return (self.warehouse.worker == other.warehouse.worker) and (set(self.warehouse.boxes) == set(other.warehouse.boxes))
     
     def __lt__(self, other):
         """
@@ -248,17 +248,15 @@ def get_index_queue_descending(A):
 
 def get_closest_target(targets, boxCoord, boxWeight):
     closestTarget = None
-    maxIndex = 0
 
-    for index, target in enumerate(targets):
+    for target in targets:
         targetDistance = manhattan(boxCoord, target) * boxWeight
-        if closestTarget is None or  closestTarget < targetDistance :
+        if closestTarget is None or  closestTarget < targetDistance:
             closestTarget = targetDistance
-            maxIndex = index
-    return maxIndex
+    return closestTarget
 
 def manhattan(a, b):
-    return (a[0] + a[1]) - (b[0] + b[1])
+    return abs((a[0] + a[1]) - (b[0] + b[1]))
 
 class SokobanPuzzle(search.Problem):
     '''
@@ -340,7 +338,7 @@ class SokobanPuzzle(search.Problem):
         method if checking against a single self.goal is not enough."""
 
         # count number of boxes not in target square using string representation
-        return str(state.warehouse).count('$') == 0
+        return set(state.warehouse.boxes) == set(state.warehouse.targets)
 
     def path_cost(self, c, state1, action, state2):
         """Return the cost of a solution path that arrives at state2 from
