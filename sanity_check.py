@@ -15,7 +15,7 @@ marking your code, make sure that your code runs without errors with this script
 '''
 
 
-from mySokobanSolver import SokobanPuzzle, path_to_location
+from mySokobanSolver import SokobanPuzzle, any_box_in_taboo, path_to_location
 from sokoban import Warehouse
 
 
@@ -112,6 +112,19 @@ def sokoban_results_test():
 
     print(t == str(wh_out))
 
+def any_box_in_taboo_test():
+    wh = Warehouse()
+    wh.load_warehouse("./warehouses/warehouse_01.txt")
+
+    test_input = "####\n# .#\n#  ###\n#*@  #\n#   $#\n#  ###\n####"
+
+    taboo = taboo_cells(wh)
+
+    print(test_input)
+    print(taboo)
+    
+    print(any_box_in_taboo(test_input, taboo))
+
 if __name__ == "__main__":
     pass    
 #    print(my_team())  # should print your team
@@ -122,4 +135,5 @@ if __name__ == "__main__":
 
     # test_pathing()
 
-    sokoban_results_test()
+    # sokoban_results_test()
+    any_box_in_taboo_test()
