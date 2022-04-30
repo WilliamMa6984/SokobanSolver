@@ -193,6 +193,12 @@ def any_box_in_taboo(map_str, tabooMap_str):
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
+class SokobanPuzzleState:
+    def __init__(self, warehouse):
+        self.walls = warehouse.walls.copy()
+        self.boxes = warehouse.boxes.copy()
+        self.weights = warehouse.weights.copy()
+        self.worker = warehouse.worker
 
 class SokobanPuzzle(search.Problem):
     '''
@@ -217,7 +223,7 @@ class SokobanPuzzle(search.Problem):
     #     You are allowed (and encouraged) to use auxiliary functions and classes
     
     def __init__(self, warehouse):
-        self.initial = warehouse
+        self.initial = SokobanPuzzleState(warehouse)
         self.taboo_map = taboo_cells(warehouse) # string rep
     
     def actions(self, state):
@@ -246,11 +252,7 @@ class SokobanPuzzle(search.Problem):
                 if isTaboo == False:
                     legal_actions.append({'action': actions, 'boxIndex': boxId})
                 
-
-        # if next_box_location not in self.taboos:
-        #     legal_actions.append({'action': action, 'boxIndex': boxId})
-
-        raise NotImplementedError
+        return legal_actions
     
     def result(self, state, action):
         """
@@ -283,6 +285,9 @@ class SokobanPuzzle(search.Problem):
         state2.  If the path does matter, it will consider c and maybe state1
         and action. The default method costs 1 for every step in the path."""
         # cost = length of all actions except last, + box weight of the box
+        print(action)
+        print(action['action'])
+        print(action['boxIndex'])
         return c + len(action['action'])-1 + state2.weights(action['boxIndex'])
         
     def h(self, node):
@@ -386,18 +391,18 @@ def solve_weighted_sokoban(warehouse):
             C is the total cost of the action sequence C
 
     '''
-    print("boxes: ", warehouse.boxes)
-    print("weights: ", warehouse.weights)
-    print("walls: ", warehouse.walls)
-    print("worker: ", warehouse.worker)
+    # print("boxes: ", warehouse.boxes)
+    # print("weights: ", warehouse.weights)
+    # print("walls: ", warehouse.walls)
+    # print("worker: ", warehouse.worker)
     
-    print("original map: ")
-    string = str(warehouse)
-    print(string)
+    # print("original map: ")
+    # string = str(warehouse)
+    # print(string)
 
-    print("taboo map: ")
-    print(taboo_cells(warehouse))
-    print("stop")
+    # print("taboo map: ")
+    # print(taboo_cells(warehouse))
+    # print("stop")
 
     # print("mark playable:")
     # print(markPlayable(warehouse))
@@ -425,6 +430,10 @@ def solve_weighted_sokoban(warehouse):
     # print(out[0:len(out)-1])
 
     # SokobanPuzzle(warehouse)
+    
+    a = search.breadth_first_graph_search(SokobanPuzzle(warehouse))
+
+    print(a)
 
     return ['Right', 'Right', 'Down', 'Left'], 0
     # return ['Down', 'Left', 'Up', 'Right', 'Right', 'Right', 'Down', 'Left', 'Up', 'Left', 'Left', 'Down', 'Down', 'Right', 'Up', 'Left', 'Up', 'Right', 'Up', 'Up', 'Left', 'Down', 'Right', 'Down', 'Down', 'Right', 'Right', 'Up', 'Left', 'Down', 'Left', 'Up'], 0
