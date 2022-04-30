@@ -217,15 +217,36 @@ class HashedWarehouseState:
         """
         assert isinstance(other, HashedWarehouseState)
         
-        print("111")
-        print(self.warehouse.boxes)
-        print(other.warehouse.boxes)
-        print(self.warehouse.weights)
-        print(other.warehouse.weights)
+        return h_overall(self.warehouse) < h_overall(other.warehouse)
 
-        # find weightiest box, find distance to closest goal, etc
+def h_overall(warehouse):
+    i_queue = get_index_queue_descending(warehouse.weights)
+    h = 0
+    for i in i_queue:
+        h = h + get_closest_target(warehouse.targets, warehouse.boxes[i], warehouse.weights[i])
 
-def getClosestTarget(targets, boxCoord, boxWeight):
+    return h
+
+def get_index_queue_descending(A):
+    index_queue = []
+    B = A.copy()
+    while (len(B) > 0):
+        max = -1
+        i_max = []
+        for i, val in enumerate(B):
+            if val > max:
+                i_max = i
+                max = val
+
+        if (i_max == []):
+            break
+
+        index_queue.append(i_max)
+        B[i_max] = -1
+
+    return index_queue
+
+def get_closest_target(targets, boxCoord, boxWeight):
     closestTarget = None
     maxIndex = 0
 
@@ -328,12 +349,11 @@ class SokobanPuzzle(search.Problem):
         state2.  If the path does matter, it will consider c and maybe state1
         and action. The default method costs 1 for every step in the path."""
         # cost = length of all actions except last, + box weight of the box
-        return c + len(action['action'])-1 + self.weights[action['boxIndex']]
+        return c + len(action['action']) + self.weights[action['boxIndex']]
         
     def h(self, node):
         """Heuristic"""
-        # print(node)
-        return 0
+        return h_overall(node.state.warehouse)
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -432,62 +452,19 @@ def solve_weighted_sokoban(warehouse):
             C is the total cost of the action sequence C
 
     '''
-    # print("boxes: ", warehouse.boxes)
-    # print("weights: ", warehouse.weights)
-    # print("walls: ", warehouse.walls)
-    # print("worker: ", warehouse.worker)
-    
-    # print("original map: ")
-    # string = str(warehouse)
-    # print(string)
 
-    # print("taboo map: ")
-    # print(taboo_cells(warehouse))
-    # print("stop")
+    sol_node = search.astar_graph_search(SokobanPuzzle(warehouse))
 
-    # print("mark playable:")
-    # print(markPlayable(warehouse))
+    if (sol_node == None):
+        return 'Impossible', None
 
-    # str_taboo_cells = taboo_cells(warehouse)
-    # taboo_cells_coords = taboo_string_to_tuples(str_taboo_cells)
-    # warehouse.taboos = taboo_cells_coords
+    route = []
+    cost = 0
+    for action in sol_node.solution():
+        route = route + action['action']
+        cost = cost + len(action['action']) + warehouse.weights[action['boxIndex']]
 
-    # just checking the string, using taboos coords
-    # print(warehouse.taboos)
-    # string_arr = string.split('\n')
-    # for i in range(len(string_arr)):
-    #     string_arr[i] = list(string_arr[i])
-    
-    # for taboo in warehouse.taboos:
-    #     string_arr[taboo[1]][taboo[0]] = 'X'
-    
-    # out = ''
-    # for string in string_arr:
-    #     for letter in string:
-    #         out += letter
-    #     out += '\n'
-
-    # print("out taboo map:")
-    # print(out[0:len(out)-1])
-
-    # SokobanPuzzle(warehouse)
-    
-    a = search.astar_graph_search(SokobanPuzzle(warehouse))
-    # a = search.breadth_first_graph_search(SokobanPuzzle(warehouse))
-
-    # print(a.solution())
-
-    sol = [{'action': ['Left', 'Left', 'Left', 'Left', 'Left', 'Left', 'Down', 'Down', 'Down', 'Right'], 'boxIndex': 1}, {'action': ['Right'], 'boxIndex': 1}, {'action': ['Up', 'Left'], 'boxIndex': 0}, {'action': ['Down', 'Left', 'Up'], 'boxIndex': 0}, {'action': ['Up'], 'boxIndex': 0}, {'action': ['Left', 'Up', 'Right'], 'boxIndex': 0}, {'action': ['Right'], 'boxIndex': 0}, {'action': ['Right'], 'boxIndex': 
-0}, {'action': ['Right'], 'boxIndex': 0}, {'action': ['Right'], 'boxIndex': 0}, {'action': ['Right'], 'boxIndex': 0}, {'action': ['Down', 'Right', 'Right', 'Right', 'Up', 'Up', 'Left', 'Left', 'Down'], 'boxIndex': 0}, {'action': ['Left', 'Left', 'Left', 'Left', 'Left', 'Left', 'Down', 'Down', 'Right', 'Right', 'Right', 'Down'], 'boxIndex': 1}, {'action': ['Right', 'Down', 'Down', 'Left', 'Up'], 'boxIndex': 1}, {'action': ['Right', 'Up', 'Left'], 'boxIndex': 1}, {'action': ['Left'], 'boxIndex': 1}, {'action': ['Left'], 'boxIndex': 1}, {'action': ['Right', 'Right', 'Down', 'Down', 'Down', 'Left', 'Left', 'Up', 'Up'], 'boxIndex': 2}, {'action': ['Left', 'Up'], 'boxIndex': 1}, {'action': ['Up'], 'boxIndex': 1}, {'action': ['Up'], 'boxIndex': 1}, {'action': ['Left', 'Up', 'Right'], 'boxIndex': 1}, 
-{'action': ['Right'], 'boxIndex': 1}, {'action': ['Right'], 'boxIndex': 1}, {'action': ['Right'], 'boxIndex': 1}, {'action': ['Right'], 'boxIndex': 1}, {'action': ['Right'], 'boxIndex': 1}, {'action': 
-['Left', 'Left', 'Left', 'Left', 'Left', 'Down', 'Down', 'Down', 'Down', 'Right', 'Up'], 'boxIndex': 2}, {'action': ['Right', 'Up', 'Left'], 'boxIndex': 2}, {'action': ['Down', 'Left', 'Up'], 'boxIndex': 2}, {'action': ['Up'], 'boxIndex': 2}, {'action': ['Left', 'Up', 'Right'], 'boxIndex': 2}, {'action': ['Right'], 'boxIndex': 2}, {'action': ['Right'], 'boxIndex': 2}, {'action': ['Right'], 'boxIndex': 2}, {'action': ['Right'], 'boxIndex': 2}, {'action': ['Down', 'Right', 'Down', 'Right', 'Right', 'Up', 'Left'], 'boxIndex': 0}, {'action': ['Right', 'Right', 'Up', 'Up', 'Left', 'Left', 'Down'], 'boxIndex': 1}, {'action': ['Left'], 'boxIndex': 2}, {'action': ['Left'], 'boxIndex': 2}, {'action': ['Right', 'Right', 'Up', 'Right', 'Right', 'Down', 'Down', 'Down', 'Left', 'Left', 'Left', 'Up'], 'boxIndex': 0}, {'action': ['Right'], 'boxIndex': 1}, {'action': ['Right'], 'boxIndex': 1}, {'action': ['Down', 'Right', 'Up'], 'boxIndex': 1}, {'action': ['Left', 'Left', 'Left', 'Left', 'Up', 'Left'], 'boxIndex': 2}, {'action': ['Left'], 'boxIndex': 2}, {'action': ['Left'], 'boxIndex': 2}, {'action': ['Left'], 'boxIndex': 2}, {'action': ['Right', 'Right', 'Right', 'Right', 'Down', 'Right', 'Right', 'Up', 'Left'], 'boxIndex': 0}, {'action': ['Left'], 'boxIndex': 0}]
-
-    actions = []
-    for s in sol:
-        actions = actions + s['action']
-
-    return actions, 0
-    # return ['Down', 'Left', 'Up', 'Right', 'Right', 'Right', 'Down', 'Left', 'Up', 'Left', 'Left', 'Down', 'Down', 'Right', 'Up', 'Left', 'Up', 'Right', 'Up', 'Up', 'Left', 'Down', 'Right', 'Down', 'Down', 'Right', 'Right', 'Up', 'Left', 'Down', 'Left', 'Up'], 0
+    return route, cost
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -521,7 +498,7 @@ def path_to_location(warehouse, goal, ignoreBox):
         The solution path - a list of directions, None if no solution is found. Path cost is equivalent to the length of the solution.
     """
 
-    out = search.breadth_first_graph_search(WorkerPathing(warehouse, goal, ignoreBox))
+    out = search.astar_graph_search(WorkerPathing(warehouse, goal, ignoreBox))
 
     if out == None:
         return None
