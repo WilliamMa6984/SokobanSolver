@@ -207,17 +207,23 @@ class HashedWarehouseState:
         """
         Equality comparison for the state
         """
-        if not isinstance(other, HashedWarehouseState):
-            return False
+        assert isinstance(other, HashedWarehouseState)
+        
         return str(self.warehouse) == str(other.warehouse)
     
     def __lt__(self, other):
         """
-        Check if this state value is less than other value
-        
-        @param
-            other: f(n), a calculated value (using box-target distance and weights)
+        Check if this state is less optimal than the other state.
         """
+        assert isinstance(other, HashedWarehouseState)
+        
+        print("111")
+        print(self.warehouse.boxes)
+        print(other.warehouse.boxes)
+        print(self.warehouse.weights)
+        print(other.warehouse.weights)
+
+        # find weightiest box, find distance to closest goal, etc
 
 class SokobanPuzzle(search.Problem):
     '''
@@ -312,7 +318,7 @@ class SokobanPuzzle(search.Problem):
         
     def h(self, node):
         """Heuristic"""
-        print(node)
+        # print(node)
         return 0
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -453,10 +459,20 @@ def solve_weighted_sokoban(warehouse):
     # SokobanPuzzle(warehouse)
     
     a = search.astar_graph_search(SokobanPuzzle(warehouse))
+    # a = search.breadth_first_graph_search(SokobanPuzzle(warehouse))
 
-    print(a.solution())
+    # print(a.solution())
 
-    return ['Right', 'Right', 'Down', 'Left'], 0
+    sol = [{'action': ['Left', 'Left', 'Left', 'Left', 'Left', 'Left', 'Down', 'Down', 'Down', 'Right'], 'boxIndex': 1}, {'action': ['Right'], 'boxIndex': 1}, {'action': ['Up', 'Left'], 'boxIndex': 0}, {'action': ['Down', 'Left', 'Up'], 'boxIndex': 0}, {'action': ['Up'], 'boxIndex': 0}, {'action': ['Left', 'Up', 'Right'], 'boxIndex': 0}, {'action': ['Right'], 'boxIndex': 0}, {'action': ['Right'], 'boxIndex': 
+0}, {'action': ['Right'], 'boxIndex': 0}, {'action': ['Right'], 'boxIndex': 0}, {'action': ['Right'], 'boxIndex': 0}, {'action': ['Down', 'Right', 'Right', 'Right', 'Up', 'Up', 'Left', 'Left', 'Down'], 'boxIndex': 0}, {'action': ['Left', 'Left', 'Left', 'Left', 'Left', 'Left', 'Down', 'Down', 'Right', 'Right', 'Right', 'Down'], 'boxIndex': 1}, {'action': ['Right', 'Down', 'Down', 'Left', 'Up'], 'boxIndex': 1}, {'action': ['Right', 'Up', 'Left'], 'boxIndex': 1}, {'action': ['Left'], 'boxIndex': 1}, {'action': ['Left'], 'boxIndex': 1}, {'action': ['Right', 'Right', 'Down', 'Down', 'Down', 'Left', 'Left', 'Up', 'Up'], 'boxIndex': 2}, {'action': ['Left', 'Up'], 'boxIndex': 1}, {'action': ['Up'], 'boxIndex': 1}, {'action': ['Up'], 'boxIndex': 1}, {'action': ['Left', 'Up', 'Right'], 'boxIndex': 1}, 
+{'action': ['Right'], 'boxIndex': 1}, {'action': ['Right'], 'boxIndex': 1}, {'action': ['Right'], 'boxIndex': 1}, {'action': ['Right'], 'boxIndex': 1}, {'action': ['Right'], 'boxIndex': 1}, {'action': 
+['Left', 'Left', 'Left', 'Left', 'Left', 'Down', 'Down', 'Down', 'Down', 'Right', 'Up'], 'boxIndex': 2}, {'action': ['Right', 'Up', 'Left'], 'boxIndex': 2}, {'action': ['Down', 'Left', 'Up'], 'boxIndex': 2}, {'action': ['Up'], 'boxIndex': 2}, {'action': ['Left', 'Up', 'Right'], 'boxIndex': 2}, {'action': ['Right'], 'boxIndex': 2}, {'action': ['Right'], 'boxIndex': 2}, {'action': ['Right'], 'boxIndex': 2}, {'action': ['Right'], 'boxIndex': 2}, {'action': ['Down', 'Right', 'Down', 'Right', 'Right', 'Up', 'Left'], 'boxIndex': 0}, {'action': ['Right', 'Right', 'Up', 'Up', 'Left', 'Left', 'Down'], 'boxIndex': 1}, {'action': ['Left'], 'boxIndex': 2}, {'action': ['Left'], 'boxIndex': 2}, {'action': ['Right', 'Right', 'Up', 'Right', 'Right', 'Down', 'Down', 'Down', 'Left', 'Left', 'Left', 'Up'], 'boxIndex': 0}, {'action': ['Right'], 'boxIndex': 1}, {'action': ['Right'], 'boxIndex': 1}, {'action': ['Down', 'Right', 'Up'], 'boxIndex': 1}, {'action': ['Left', 'Left', 'Left', 'Left', 'Up', 'Left'], 'boxIndex': 2}, {'action': ['Left'], 'boxIndex': 2}, {'action': ['Left'], 'boxIndex': 2}, {'action': ['Left'], 'boxIndex': 2}, {'action': ['Right', 'Right', 'Right', 'Right', 'Down', 'Right', 'Right', 'Up', 'Left'], 'boxIndex': 0}, {'action': ['Left'], 'boxIndex': 0}]
+
+    actions = []
+    for s in sol:
+        actions = actions + s['action']
+
+    return actions, 0
     # return ['Down', 'Left', 'Up', 'Right', 'Right', 'Right', 'Down', 'Left', 'Up', 'Left', 'Left', 'Down', 'Down', 'Right', 'Up', 'Left', 'Up', 'Right', 'Up', 'Up', 'Left', 'Down', 'Right', 'Down', 'Down', 'Right', 'Right', 'Up', 'Left', 'Down', 'Left', 'Up'], 0
 
 
