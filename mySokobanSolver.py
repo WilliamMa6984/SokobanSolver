@@ -331,11 +331,10 @@ class SokobanPuzzle(search.Problem):
         
     def h(self, node):
         """Heuristic: the distance for each box from any nearest target"""
-        warehouse = self.warehouse.copy(worker = node.state.worker, boxes = node.state.boxes.copy())
-        return h_overall(warehouse)
+        return h_overall(self.warehouse.targets, node.state.boxes, self.warehouse.weights)
         
 
-def h_overall(warehouse):
+def h_overall(targets, boxes, weights):
     """
     Calculate the overall heuristic of the current warehouse: based on the
     distance between each box, and between its nearest target
@@ -344,13 +343,12 @@ def h_overall(warehouse):
         warehouse: a valid warehouse object
     """
 
-    i_queue = get_index_queue_descending(warehouse.weights)
+    i_queue = get_index_queue_descending(weights)
     h = 0
-    targets = warehouse.targets.copy()
     for count, i in enumerate(i_queue):
-        h = h + get_closest_target(targets, warehouse.boxes[i], warehouse.weights[i])
+        h = h + get_closest_target(targets, boxes[i], weights[i])
         if count > 0:
-            h = h + manhattan(warehouse.boxes[i], warehouse.boxes[i-1])
+            h = h + manhattan(boxes[i], boxes[i-1])
 
     return h
 
@@ -391,15 +389,12 @@ def get_closest_target(targets, boxCoord, boxWeight):
     """
 
     closestTarget = manhattan(boxCoord, targets[0]) * (boxWeight+1)
-    maxIndex = 0
-
-    for i, target in enumerate(targets):
+    
+    for target in targets:
         targetDistance = manhattan(boxCoord, target) * (boxWeight+1)
         if closestTarget < targetDistance:
             closestTarget = targetDistance
-            maxIndex = i
     
-    targets.pop(maxIndex)
     return closestTarget
 
 def manhattan(a, b):
