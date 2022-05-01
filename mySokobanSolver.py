@@ -208,6 +208,11 @@ def any_box_in_taboo(map_str, tabooMap_str):
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 class HashedWarehouseState:
+    """
+    The Warehouse state as a hashable object
+    @param: worker, boxes, targets
+    """
+
     def __init__(self, warehouse):
         self.warehouse = warehouse
 
@@ -233,69 +238,7 @@ class HashedWarehouseState:
         
         return h_overall(self.warehouse) < h_overall(other.warehouse)
 
-def h_overall(warehouse):
-    """
-    Calculate the overall heuristic of the current warehouse: based on the
-    distance between each box and its nearest target
-
-    @param
-        warehouse: a valid warehouse object
-    """
-    i_queue = get_index_queue_descending(warehouse.weights)
-    h = 0
-    for i in i_queue:
-        h = h + get_closest_target(warehouse.targets, warehouse.boxes[i], warehouse.weights[i])
-
-    return h
-
-def get_index_queue_descending(A):
-    """
-    Returns a queue containing the indices of the input array A, ordered by
-    the values of each element in array A (descending order).
-    """
-
-    index_queue = []
-    B = A.copy()
-    while (len(B) > 0):
-        max = -1
-        i_max = []
-        for i, val in enumerate(B):
-            if val > max:
-                i_max = i
-                max = val
-
-        if (i_max == []):
-            break
-
-        index_queue.append(i_max)
-        B[i_max] = -1
-
-    return index_queue
-
-def get_closest_target(targets, boxCoord, boxWeight):
-    """
-    Get the closest target for the input box and return the path cost
-    to move the box to the target.
-    
-    @param
-        targets: a list of target coordinates to find the closest target
-        boxCoord: the coordinate of the box
-        boxWeight: the weight of the box
-    @return Returns the distance (including weight)
-    """
-
-    closestTarget = None
-
-    for target in targets:
-        targetDistance = manhattan(boxCoord, target) * boxWeight
-        if closestTarget is None or  closestTarget < targetDistance:
-            closestTarget = targetDistance
-    return closestTarget
-
-def manhattan(a, b):
-    """Get manhattan distance between two coordinates."""
-    return abs((a[0] - b[0]) + abs(a[1] - b[1]))
-
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 class SokobanPuzzle(search.Problem):
     '''
@@ -325,7 +268,7 @@ class SokobanPuzzle(search.Problem):
         directions = ['Up', 'Down', 'Left', 'Right']
         warehouse = state.warehouse
 
-        # BOX LEGAL ACTIONS
+        # Worker movement
         for direction in directions:
             legalMap = check_elem_action_seq(warehouse, [direction])
             if legalMap == 'Impossible':
@@ -383,6 +326,75 @@ class SokobanPuzzle(search.Problem):
         """Heuristic: the distance for each box from any nearest target"""
         return h_overall(node.state.warehouse)
 
+def h_overall(warehouse):
+    """
+    Calculate the overall heuristic of the current warehouse: based on the
+    distance between each box and its nearest target
+
+    @param
+        warehouse: a valid warehouse object
+    """
+
+    i_queue = get_index_queue_descending(warehouse.weights)
+    h = 0
+    targets = warehouse.targets.copy()
+    for i in i_queue:
+        h = h + get_closest_target(targets, warehouse.boxes[i], warehouse.weights[i])
+
+    return h
+
+def get_index_queue_descending(A):
+    """
+    Returns a queue containing the indices of the input array A, ordered by
+    the values of each element in array A (descending order).
+    """
+
+    index_queue = []
+    B = A.copy()
+    while (len(B) > 0):
+        max = -1
+        i_max = []
+        for i, val in enumerate(B):
+            if val > max:
+                i_max = i
+                max = val
+
+        if (i_max == []):
+            break
+
+        index_queue.append(i_max)
+        B[i_max] = -1
+
+    return index_queue
+
+def get_closest_target(targets, boxCoord, boxWeight):
+    """
+    Get the closest target for the input box and return the path cost
+    to move the box to the target.
+    
+    @param
+        targets: a list of target coordinates to find the closest target
+        boxCoord: the coordinate of the box
+        boxWeight: the weight of the box
+    @return Returns the distance (including weight)
+    """
+
+    closestTarget = targetDistance = manhattan(boxCoord, targets[0]) * boxWeight
+    maxIndex = 0
+
+    for i, target in enumerate(targets):
+        targetDistance = manhattan(boxCoord, target) * boxWeight
+        if closestTarget < targetDistance:
+            closestTarget = targetDistance
+            maxIndex = i
+    
+    targets.pop(maxIndex)
+    return maxIndex
+
+def manhattan(a, b):
+    """Get manhattan distance between two coordinates."""
+    return abs((a[0] - b[0]) + abs(a[1] - b[1]))
+
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 def check_elem_action_seq(warehouse, action_seq):
@@ -414,7 +426,7 @@ def check_elem_action_seq(warehouse, action_seq):
     for i in action_seq:
         warehouse_out.worker = movement(i, warehouse_out.worker)
         if warehouse_out.worker in warehouse_out.boxes:
-            boxToMoveInds = [i for i, x in enumerate(warehouse_out.boxes) if warehouse_out.worker == x] # might need to use (==) ?
+            boxToMoveInds = [i for i, x in enumerate(warehouse_out.boxes) if warehouse_out.worker == x]
             for boxInd in boxToMoveInds:
                 newBoxCoord = movement(i, warehouse_out.boxes[boxInd])
                 if newBoxCoord in warehouse_out.boxes or newBoxCoord in warehouse_out.walls:
