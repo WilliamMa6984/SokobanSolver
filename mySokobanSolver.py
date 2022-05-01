@@ -93,14 +93,16 @@ def taboo_cells(warehouse):
     for y in range(len(warehouse_str)):
         for x in range(len(warehouse_str[y])):
             if (warehouse_str[y][x] == ' '):
-                # corner if up down left right are walls >1 times
+                # if up-right-down-left are walls >2 times consecutively, then corner
+                # | #  | @# | #@ |  # |
+                # | @# | #  |  # | #@ |
                 up = warehouse_str[y+1][x]
                 down = warehouse_str[y-1][x]
                 left = warehouse_str[y][x-1]
                 right = warehouse_str[y][x+1]
                 pattern = up + right + down + left + up
-                # count walls
-                corner = pattern.find("##") # two walls in pattern (corner)
+                
+                corner = pattern.find("##") # two walls in pattern => corner
 
                 if (corner >= 0):
                     warehouse_str[y] = warehouse_str[y][:x] + 'X' + warehouse_str[y][x+1:]
