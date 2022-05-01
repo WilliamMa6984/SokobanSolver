@@ -339,10 +339,12 @@ class SokobanPuzzle(search.Problem):
 def h_overall(targets, boxes, weights):
     """
     Calculate the overall heuristic of the current warehouse: based on the
-    distance between each box, and between its nearest target
+    distance between each box and its nearest target
 
     @param
-        warehouse: a valid warehouse object
+        targets: a list of target coordinate tuples
+        boxes: a list of box coordinate tuples
+        weights: a list of box weights
     """
     h = 0
     for i, box in enumerate(boxes):
@@ -359,17 +361,17 @@ def get_closest_target(targets, boxCoord, boxWeight):
         targets: a list of target coordinates to find the closest target
         boxCoord: the coordinate of the box
         boxWeight: the weight of the box
-    @return Returns the distance (including weight)
+    @return Returns the weighted distance from the box to a closest goal
     """
 
-    closestTarget = manhattan(boxCoord, targets[0]) * (boxWeight)
+    closestTargetDistance = manhattan(boxCoord, targets[0]) * (boxWeight)
     
     for target in targets:
         targetDistance = manhattan(boxCoord, target) * (boxWeight)
-        if closestTarget > targetDistance:
-            closestTarget = targetDistance
+        if targetDistance < closestTargetDistance:
+            closestTargetDistance = targetDistance
     
-    return closestTarget
+    return closestTargetDistance
 
 def manhattan(a, b):
     """Get manhattan distance between two coordinates."""
