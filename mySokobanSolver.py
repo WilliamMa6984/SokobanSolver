@@ -236,7 +236,7 @@ class HashedWarehouseState:
         """
         assert isinstance(other, HashedWarehouseState)
         
-        return h_overall(self.warehouse) < h_overall(other.warehouse)
+        return len(set(self.warehouse.boxes) - set(self.warehouse.targets)) < len(set(other.warehouse.boxes) - set(other.warehouse.targets))
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
