@@ -86,15 +86,7 @@ def taboo_cells(warehouse):
         # replace with space
         warehouse_str[y] = warehouse_str[y].replace('*', '.').replace('!', '.').replace('@', ' ').replace('$', ' ')
 
-    
-    # Marks cells inaccessible by the worker as 'u' (ignoring boxes)
-    for y, string in enumerate(warehouse_str):
-        x_arr = [i for i, letter in enumerate(list(string)) if letter == ' ']
-        
-        for x in x_arr:
-            # Check if a path exists from the player to the current space (ignoring boxes)
-            if path_to_location(warehouse, (x, y), ignoreBox=True) == None:
-                warehouse_str[y] = warehouse_str[y][:x] + 'u' + warehouse_str[y][x+1:]
+    warehouse_str = mark_inaccessible(warehouse_str, warehouse)
     
     tabooCorners = []
     # Rule 1: find corners
@@ -170,6 +162,25 @@ def taboo_cells(warehouse):
         out_str += '\n'
 
     return out_str[0:len(out_str)-1]
+
+def mark_inaccessible(warehouse_str, warehouse):
+    """
+    Marks cells that are never accesible by the worker as 'u'.
+
+    @param
+        warehouse_str: string representation of the warehouse that is to be edited
+        warehouses: the warehouse object
+    @return Returns the edited warehouse_str
+    """
+    for y, string in enumerate(warehouse_str):
+        x_arr = [i for i, letter in enumerate(list(string)) if letter == ' ']
+        
+        for x in x_arr:
+            # Check if a path exists from the player to the current space (ignoring boxes)
+            if path_to_location(warehouse, (x, y), ignoreBox=True) == None:
+                warehouse_str[y] = warehouse_str[y][:x] + 'u' + warehouse_str[y][x+1:]
+
+    return warehouse_str
 
 def any_box_in_taboo(map_str, tabooMap_str):
     """
