@@ -283,7 +283,7 @@ def get_closest_target(targets, boxCoord, boxWeight):
 
 def manhattan(a, b):
     """Get manhattan distance between two coordinates."""
-    return abs((a[0] + a[1]) - (b[0] + b[1]))
+    return abs((a[0] - b[0]) + abs(a[1] - b[1]))
 
 
 class SokobanPuzzle(search.Problem):
@@ -306,28 +306,27 @@ class SokobanPuzzle(search.Problem):
     def actions(self, state):
         """
         Return the list of actions that can be executed in the given state.
-        Must be a list of dictionary with {'action': ['Up', 'Left'], 'boxIndex': 1},
+        Must be a list of dictionary with {'direction': 'Up', 'boxIndex': 1},
         with each entry moving a single box once
         """
         
         legal_actions = []
         directions = ['Up', 'Down', 'Left', 'Right']
-        opposite_directions = ['Down', 'Up', 'Right', 'Left']
-        warehouse = copy_warehouse_fully(state.warehouse)
+        warehouse = state.warehouse
 
         # BOX LEGAL ACTIONS
-        for boxId, box in enumerate(warehouse.boxes):
-            for i, direction in enumerate(directions):
-                actions = path_to_location(warehouse, movement(opposite_directions[i], box), ignoreBox=False)
-                if actions == None:
-                    continue
-                actions.append(direction)
-                legalMap = check_elem_action_seq(warehouse, actions)
-                if legalMap == 'Impossible':
-                    continue
-                isTaboo = any_box_in_taboo(legalMap, self.taboo_map)
-                if isTaboo == False:
-                    legal_actions.append({'action': actions, 'boxIndex': boxId})
+        for direction in directions:
+            legalMap = check_elem_action_seq(warehouse, [direction])
+            if legalMap == 'Impossible':
+                continue
+            isTaboo = any_box_in_taboo(legalMap, self.taboo_map)
+            if isTaboo == False:
+                nextCoord = movement(direction, warehouse.worker)
+                if nextCoord in warehouse.boxes:
+                    boxId = warehouse.boxes.index(nextCoord)
+                else:
+                    boxId = None
+                legal_actions.append({'direction': direction, 'boxIndex': boxId})
                 
         return legal_actions
     
@@ -340,12 +339,11 @@ class SokobanPuzzle(search.Problem):
         warehouse = copy_warehouse_fully(state.warehouse)
 
         boxID = action['boxIndex']
-        lastAction = action['action'][len(action['action'])-1]
         
-        warehouse.boxes[boxID] = movement(lastAction, warehouse.boxes[boxID])
-
-        for move in action['action']:
-            warehouse.worker = movement(move, warehouse.worker)
+        if (boxID is not None):
+            warehouse.boxes[boxID] = movement(action['direction'], warehouse.boxes[boxID])
+        
+        warehouse.worker = movement(action['direction'], warehouse.worker)
 
         return HashedWarehouseState(warehouse)
 
@@ -364,7 +362,11 @@ class SokobanPuzzle(search.Problem):
         state2.  If the path does matter, it will consider c and maybe state1
         and action. The default method costs 1 for every step in the path."""
         # cost = length of all actions except last, + box weight of the box
-        return c + len(action['action']) + self.weights[action['boxIndex']]
+        boxId = action['boxIndex']
+        w = 0
+        if boxId is not None:
+            w = state1.warehouse.weights[boxId]
+        return c + 1 + w
         
     def h(self, node):
         """Heuristic: the distance for each box from any nearest target"""
@@ -396,7 +398,6 @@ def check_elem_action_seq(warehouse, action_seq):
                string returned by the method  Warehouse.__str__()
     '''
     
-    ##         "INSERT YOUR CODE HERE"
     warehouse_out = copy_warehouse_fully(warehouse) # copy the warehouse so that changes do not spill over to the actual warehouse
     
     for i in action_seq:
@@ -476,8 +477,13 @@ def solve_weighted_sokoban(warehouse):
     route = []
     cost = 0
     for action in sol_node.solution():
-        route = route + action['action']
-        cost = cost + len(action['action']) + warehouse.weights[action['boxIndex']]
+        route.append(action['direction'])
+
+        boxId = action['boxIndex']
+        w = 0
+        if (boxId is not None):
+            w = warehouse.weights[boxId]
+        cost = cost + 1 + w
 
     return route, cost
 
