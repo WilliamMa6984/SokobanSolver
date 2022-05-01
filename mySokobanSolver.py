@@ -214,13 +214,16 @@ class HashedWarehouseState:
     """
 
     def __init__(self, warehouse):
-        self.warehouse = warehouse
+        self.worker = warehouse.worker
+        self.boxes = warehouse.boxes
+        self.targets = warehouse.targets
+        self.string = str(warehouse)
 
     def __hash__(self):
         """
-        Object hash - must be equal for the same state
+        Object hash - same state must be equal
         """
-        return hash(str(self.warehouse))
+        return hash(self.string)
 
     def __eq__(self, other):
         """
@@ -228,7 +231,7 @@ class HashedWarehouseState:
         """
         assert isinstance(other, HashedWarehouseState)
 
-        return (self.warehouse.worker == other.warehouse.worker) and (set(self.warehouse.boxes) == set(other.warehouse.boxes))
+        return (self.worker == other.worker) and (set(self.boxes) == set(other.boxes))
     
     def __lt__(self, other):
         """
@@ -236,7 +239,7 @@ class HashedWarehouseState:
         """
         assert isinstance(other, HashedWarehouseState)
         
-        return len(set(self.warehouse.boxes) - set(self.warehouse.targets)) < len(set(other.warehouse.boxes) - set(other.warehouse.targets))
+        return len(set(self.boxes) - set(self.targets)) < len(set(other.boxes) - set(other.targets))
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -252,10 +255,13 @@ class SokobanPuzzle(search.Problem):
     '''
     
     def __init__(self, warehouse):
-        self.walls = warehouse.walls.copy()
-        self.weights = warehouse.weights.copy()
-        self.initial = HashedWarehouseState(warehouse)
+        # Statics
+        self.warehouse = warehouse
+
         self.taboo_map = taboo_cells(warehouse) # string rep
+        
+        # State
+        self.initial = HashedWarehouseState(warehouse)
     
     def actions(self, state):
         """
@@ -266,7 +272,7 @@ class SokobanPuzzle(search.Problem):
         
         legal_actions = []
         directions = ['Up', 'Down', 'Left', 'Right']
-        warehouse = state.warehouse
+        warehouse = self.warehouse.copy(worker = state.worker, boxes = state.boxes.copy())
 
         # Worker movement
         for direction in directions:
@@ -290,14 +296,15 @@ class SokobanPuzzle(search.Problem):
         action in the given state. The action must be one of
         self.actions(state).
         """
-        warehouse = copy_warehouse_fully(state.warehouse)
-
         boxID = action['boxIndex']
+        boxes_update = state.boxes.copy()
         
         if (boxID is not None):
-            warehouse.boxes[boxID] = movement(action['direction'], warehouse.boxes[boxID])
+            boxes_update[boxID] = movement(action['direction'], state.boxes[boxID])
         
-        warehouse.worker = movement(action['direction'], warehouse.worker)
+        worker_update = movement(action['direction'], state.worker)
+
+        warehouse = self.warehouse.copy(worker = worker_update, boxes = boxes_update)
 
         return HashedWarehouseState(warehouse)
 
@@ -307,7 +314,7 @@ class SokobanPuzzle(search.Problem):
         method if checking against a single self.goal is not enough."""
 
         # count number of boxes not in target square using string representation
-        return set(state.warehouse.boxes) == set(state.warehouse.targets)
+        return set(state.boxes) == set(state.targets)
 
     def path_cost(self, c, state1, action, state2):
         """Return the cost of a solution path that arrives at state2 from
@@ -319,17 +326,19 @@ class SokobanPuzzle(search.Problem):
         boxId = action['boxIndex']
         w = 0
         if boxId is not None:
-            w = state1.warehouse.weights[boxId]
+            w = self.warehouse.weights[boxId]
         return c + 1 + w
         
     def h(self, node):
         """Heuristic: the distance for each box from any nearest target"""
-        return h_overall(node.state.warehouse)
+        warehouse = self.warehouse.copy(worker = node.state.worker, boxes = node.state.boxes.copy())
+        return h_overall(warehouse)
+        
 
 def h_overall(warehouse):
     """
     Calculate the overall heuristic of the current warehouse: based on the
-    distance between each box and its nearest target
+    distance between each box, and between its nearest target
 
     @param
         warehouse: a valid warehouse object
@@ -338,8 +347,10 @@ def h_overall(warehouse):
     i_queue = get_index_queue_descending(warehouse.weights)
     h = 0
     targets = warehouse.targets.copy()
-    for i in i_queue:
+    for count, i in enumerate(i_queue):
         h = h + get_closest_target(targets, warehouse.boxes[i], warehouse.weights[i])
+        if count > 0:
+            h = h + manhattan(warehouse.boxes[i], warehouse.boxes[i-1])
 
     return h
 
@@ -370,7 +381,7 @@ def get_index_queue_descending(A):
 def get_closest_target(targets, boxCoord, boxWeight):
     """
     Get the closest target for the input box and return the path cost
-    to move the box to the target.
+    to move the box to it.
     
     @param
         targets: a list of target coordinates to find the closest target
@@ -379,17 +390,17 @@ def get_closest_target(targets, boxCoord, boxWeight):
     @return Returns the distance (including weight)
     """
 
-    closestTarget = targetDistance = manhattan(boxCoord, targets[0]) * boxWeight
+    closestTarget = manhattan(boxCoord, targets[0]) * (boxWeight+1)
     maxIndex = 0
 
     for i, target in enumerate(targets):
-        targetDistance = manhattan(boxCoord, target) * boxWeight
+        targetDistance = manhattan(boxCoord, target) * (boxWeight+1)
         if closestTarget < targetDistance:
             closestTarget = targetDistance
             maxIndex = i
     
     targets.pop(maxIndex)
-    return maxIndex
+    return closestTarget
 
 def manhattan(a, b):
     """Get manhattan distance between two coordinates."""
