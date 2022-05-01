@@ -342,39 +342,14 @@ def h_overall(targets, boxes, weights):
     @param
         warehouse: a valid warehouse object
     """
-
-    i_queue = get_index_queue_descending(weights)
+    
     h = 0
-    for count, i in enumerate(i_queue):
-        h = h + get_closest_target(targets, boxes[i], weights[i])
-        if count > 0:
-            h = h + manhattan(boxes[i], boxes[i-1])
+    for i, box in enumerate(boxes):
+        h = h + get_closest_target(targets, box, weights[i])
+        if i > 0:
+            h = h + manhattan(box, boxes[i-1])
 
     return h
-
-def get_index_queue_descending(A):
-    """
-    Returns a queue containing the indices of the input array A, ordered by
-    the values of each element in array A (descending order).
-    """
-
-    index_queue = []
-    B = A.copy()
-    while (len(B) > 0):
-        max = -1
-        i_max = []
-        for i, val in enumerate(B):
-            if val > max:
-                i_max = i
-                max = val
-
-        if (i_max == []):
-            break
-
-        index_queue.append(i_max)
-        B[i_max] = -1
-
-    return index_queue
 
 def get_closest_target(targets, boxCoord, boxWeight):
     """
@@ -388,11 +363,11 @@ def get_closest_target(targets, boxCoord, boxWeight):
     @return Returns the distance (including weight)
     """
 
-    closestTarget = manhattan(boxCoord, targets[0]) * (boxWeight+1)
+    closestTarget = manhattan(boxCoord, targets[0]) * (boxWeight)
     
     for target in targets:
-        targetDistance = manhattan(boxCoord, target) * (boxWeight+1)
-        if closestTarget < targetDistance:
+        targetDistance = manhattan(boxCoord, target) * (boxWeight)
+        if closestTarget > targetDistance:
             closestTarget = targetDistance
     
     return closestTarget
