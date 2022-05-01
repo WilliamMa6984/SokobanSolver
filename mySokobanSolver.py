@@ -77,7 +77,7 @@ def taboo_cells(warehouse):
     warehouse_str = str(warehouse).split('\n')
     x_sz = max(len(row) for row in warehouse_str)
 
-    # remove trailing horizontal spaces
+    # Preprocessing
     for y in range(len(warehouse_str)):
         # pad right until reach x_sz
         if (len(warehouse_str[y]) < x_sz):
@@ -86,13 +86,16 @@ def taboo_cells(warehouse):
         # replace with space
         warehouse_str[y] = warehouse_str[y].replace('*', '.').replace('!', '.').replace('@', ' ').replace('$', ' ')
 
-    # check for all spaces if they are accessible by the player
-    warehouse_str = mark_unplayable(warehouse_str, warehouse)
-    # print("unplayables:")
-    # for str_ in warehouse_str:
-    #     print(str_)
-    # print("done")
-
+    
+    # Marks cells inaccessible by the worker as 'u' (ignoring boxes)
+    for y, string in enumerate(warehouse_str):
+        x_arr = [i for i, letter in enumerate(list(string)) if letter == ' ']
+        
+        for x in x_arr:
+            # Check if a path exists from the player to the current space (ignoring boxes)
+            if path_to_location(warehouse, (x, y), ignoreBox=True) == None:
+                warehouse_str[y] = warehouse_str[y][:x] + 'u' + warehouse_str[y][x+1:]
+    
     tabooCorners = []
     # Rule 1: find corners
     for y in range(len(warehouse_str)):
@@ -220,6 +223,13 @@ class HashedWarehouseState:
         return h_overall(self.warehouse) < h_overall(other.warehouse)
 
 def h_overall(warehouse):
+    """
+    Calculate the overall heuristic of the current warehouse: based on the
+    distance between each box and its nearest target
+
+    @param
+        warehouse: a valid warehouse object
+    """
     i_queue = get_index_queue_descending(warehouse.weights)
     h = 0
     for i in i_queue:
@@ -228,6 +238,11 @@ def h_overall(warehouse):
     return h
 
 def get_index_queue_descending(A):
+    """
+    Returns a queue containing the indices of the input array A, ordered by
+    the values of each element in array A (descending order).
+    """
+
     index_queue = []
     B = A.copy()
     while (len(B) > 0):
@@ -247,6 +262,17 @@ def get_index_queue_descending(A):
     return index_queue
 
 def get_closest_target(targets, boxCoord, boxWeight):
+    """
+    Get the closest target for the input box and return the path cost
+    to move the box to the target.
+    
+    @param
+        targets: a list of target coordinates to find the closest target
+        boxCoord: the coordinate of the box
+        boxWeight: the weight of the box
+    @return Returns the distance (including weight)
+    """
+
     closestTarget = None
 
     for target in targets:
@@ -256,7 +282,9 @@ def get_closest_target(targets, boxCoord, boxWeight):
     return closestTarget
 
 def manhattan(a, b):
+    """Get manhattan distance between two coordinates."""
     return abs((a[0] + a[1]) - (b[0] + b[1]))
+
 
 class SokobanPuzzle(search.Problem):
     '''
@@ -268,17 +296,6 @@ class SokobanPuzzle(search.Problem):
     the provided module 'search.py'. 
     
     '''
-    
-    #
-    #         "INSERT YOUR CODE HERE"
-    #
-    #     Revisit the sliding puzzle and the pancake puzzle for inspiration!
-    #
-    #     Note that you will need to add several functions to 
-    #     complete this class. For example, a 'result' method is needed
-    #     to satisfy the interface of 'search.Problem'.
-    #
-    #     You are allowed (and encouraged) to use auxiliary functions and classes
     
     def __init__(self, warehouse):
         self.walls = warehouse.walls.copy()
@@ -350,7 +367,7 @@ class SokobanPuzzle(search.Problem):
         return c + len(action['action']) + self.weights[action['boxIndex']]
         
     def h(self, node):
-        """Heuristic"""
+        """Heuristic: the distance for each box from any nearest target"""
         return h_overall(node.state.warehouse)
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -466,24 +483,6 @@ def solve_weighted_sokoban(warehouse):
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-def mark_unplayable(warehouse_str, warehouse):
-    """
-    Marks spaces as 'u' if the cell is inaccessible by the player
-    @param
-        warehouse_str: string representation of the warehouse
-        warehouse: the initial warehouse configuration, used to find walls and the current worker location
-    @return
-        Returns the resulting string 
-    """
-    for y, string in enumerate(warehouse_str):
-        x_arr = [i for i, letter in enumerate(list(string)) if letter == ' ']
-        
-        for x in x_arr:
-            if path_to_location(warehouse, (x, y), ignoreBox=True) == None:
-                warehouse_str[y] = warehouse_str[y][:x] + 'u' + warehouse_str[y][x+1:]
-    
-    return warehouse_str
 
 def path_to_location(warehouse, goal, ignoreBox):
     """
