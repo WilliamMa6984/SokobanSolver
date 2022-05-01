@@ -342,12 +342,9 @@ def h_overall(targets, boxes, weights):
     @param
         warehouse: a valid warehouse object
     """
-    
     h = 0
     for i, box in enumerate(boxes):
         h = h + get_closest_target(targets, box, weights[i])
-        if i > 0:
-            h = h + manhattan(box, boxes[i-1])
 
     return h
 
